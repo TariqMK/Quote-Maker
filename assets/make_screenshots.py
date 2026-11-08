@@ -1,6 +1,6 @@
 """Retakes the README screenshots from the real interface, in light and dark, with made-up data.
 
-Writes assets/screenshots/<view>-light.png and <view>-dark.png at 1120 x 720 px, saved at 2x.
+Writes assets/screenshots/<view>-light.png and <view>-dark.png at 1120 x 820 px, saved at 2x.
 It captures only the page, in a clean browser profile, so no real settings or files can appear.
 The page's network requests are blocked, except to the local server.
 The version label shows the newest vX.Y.Z git tag. The script fetches tags from the repository's
@@ -23,7 +23,7 @@ ASSETS = Path(__file__).parent
 ROOT = ASSETS.parent
 WEB_DIR = ROOT / "quote_maker" / "web"
 OUT_DIR = ASSETS / "screenshots"
-WIDTH, HEIGHT, SCALE = 1120, 720, 2
+WIDTH, HEIGHT, SCALE = 1120, 820, 2
 FETCH_TIMEOUT_SECONDS = 20
 
 
@@ -127,7 +127,7 @@ window.pywebview = { api: {
 VIEWS = [
     {
         "file": "editor",
-        "quote": "Keep the first draft. It remembers what you *meant* before you knew how to say it.",
+        "quote": "Keep the [yellow: first draft]. It remembers what you *meant* before you knew how to say it.",
         "author": "Mara Ellison",
         "source": "Notes from the Harbour",
         "size": "Portrait",
@@ -202,6 +202,8 @@ def capture(browser, url, scheme):
         if "filter" in view:
             page.locator(".filter", has_text=view["filter"]).click()
         page.click(f"#{view['tab']}")
+        # Clicking a style can scroll the gallery, which would hide the filters.
+        page.evaluate("document.getElementById('pane-styles').scrollTop = 0")
         # Wait for fonts and every visible thumbnail, then for the preview to redraw.
         wait_until(page, "document.fonts.status === 'loaded'")
         wait_until(

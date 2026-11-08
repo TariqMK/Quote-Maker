@@ -6,7 +6,7 @@ Try the working demo on the [Quote-Maker website](https://tariqmk.github.io/Quot
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/editor-dark.png">
-  <img src="assets/screenshots/editor-light.png" alt="Quote-Maker with a quote in the Oxblood style: the text fields on the left, the image preview in the centre and the style gallery on the right" width="840">
+  <img src="assets/screenshots/editor-light.png" alt="Quote-Maker with a quote in the Oxblood style, with two words highlighted in yellow: the text fields on the left, the image preview in the centre and the style gallery on the right" width="840">
 </picture>
 
 ## Features
