@@ -1,6 +1,9 @@
 # Private folder
 Meta/
 
+# User data from running the app from source
+Quote-Maker Data/
+
 # AI tools
 .claude/
 CLAUDE.md

@@ -16,6 +16,7 @@ const SIZES = [
 const SCALES = [1, 2, 3];
 const SIZE_LIMIT = { min: 200, max: 6000 };
 const MINE = "My styles";
+const WRITE_FAILED = "Could not write to the Quote-Maker Data folder. Move the app to a folder you can change.";
 const SAMPLE = { quote: "Paste your own *words* and make them look like they matter.", author: "Your name", source: "" };
 const THUMB = { quote: "Words *worth* keeping", author: "Author", source: "", size: 400, textScale: 1.7 };
 
@@ -123,7 +124,9 @@ function persist() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     const { quote, author, source, sizeId, customWidth, customHeight, scale, styleId, style, edited } = state;
-    bridge.saveState({ quote, author, source, sizeId, customWidth, customHeight, scale, styleId, style, edited });
+    bridge
+      .saveState({ quote, author, source, sizeId, customWidth, customHeight, scale, styleId, style, edited })
+      .catch(() => setStatus(WRITE_FAILED));
   }, 500);
 }
 
@@ -347,7 +350,13 @@ async function saveAsNew() {
   });
   if (!name) return;
   const { id: _id, category: _category, ...values } = state.style;
-  const saved = await bridge.saveStyle({ ...values, name });
+  let saved;
+  try {
+    saved = await bridge.saveStyle({ ...values, name });
+  } catch {
+    setStatus(WRITE_FAILED);
+    return;
+  }
   customStyles = await bridge.listStyles();
   state.styleId = saved.id;
   state.style = clone(saved);
@@ -362,7 +371,13 @@ async function saveAsNew() {
 }
 
 async function updateCustom() {
-  const saved = await bridge.saveStyle({ ...state.style, id: state.styleId });
+  let saved;
+  try {
+    saved = await bridge.saveStyle({ ...state.style, id: state.styleId });
+  } catch {
+    setStatus(WRITE_FAILED);
+    return;
+  }
   customStyles = await bridge.listStyles();
   state.style = clone(saved);
   state.edited = false;
@@ -380,7 +395,12 @@ async function deleteCustom() {
     confirm: "Delete style",
   });
   if (!confirmed) return;
-  await bridge.deleteStyle(style.id);
+  try {
+    await bridge.deleteStyle(style.id);
+  } catch {
+    setStatus(WRITE_FAILED);
+    return;
+  }
   customStyles = await bridge.listStyles();
   renderGallery();
   selectStyle(PRESETS[0].id);

@@ -2,6 +2,8 @@
 
 Quote-Maker turns pasted text into a quote image. Select a style, adjust it, and save a PNG. Works offline. Sends no data.
 
+Try the working demo on the [Quote-Maker website](https://tariqmk.github.io/Quote-Maker/).
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/editor-dark.png">
   <img src="assets/screenshots/editor-light.png" alt="Quote-Maker with a quote in the Oxblood style: the text fields on the left, the image preview in the centre and the style gallery on the right" width="840">
@@ -15,6 +17,7 @@ Quote-Maker turns pasted text into a quote image. Select a style, adjust it, and
 - 24 bundled font families.
 - 5 image sizes and 3 export scales.
 - Text that shrinks automatically to fit the image.
+- Portable: your styles and work stay in one folder beside the app.
 
 ## Download
 
@@ -23,12 +26,13 @@ Quote-Maker turns pasted text into a quote image. Select a style, adjust it, and
    - Windows x64: `.exe`
    - macOS Apple Silicon: `.zip`
    - Linux x64: `.tar.gz`
-3. Open the file. No installation is necessary on Windows.
+3. Put the app in a folder you can change, such as a folder on a USB drive. Do not use `Program Files`.
+4. Open the app. No installation is necessary on Windows.
 
 **Note:** The builds are not signed.
 
 - **Windows:** SmartScreen can show a warning. Select **More info**, then **Run anyway**.
-- **macOS:** Unzip the file and open the app. To approve the first start, go to **System Settings > Privacy & Security** and select **Open Anyway**. Intel Macs are not supported.
+- **macOS:** Unzip the file. Move the app out of `Downloads` with Finder before you open it, because macOS can run a downloaded app from a read-only location. To approve the first start, go to **System Settings > Privacy & Security** and select **Open Anyway**. Intel Macs are not supported.
 - **Linux:** Install WebKitGTK first. On Ubuntu 24.04, run `sudo apt install gir1.2-webkit2-4.1`.
 
 ## Make a quote image
@@ -85,16 +89,25 @@ The style appears under **My styles**.
 
 **Caution:** **Delete** removes a custom style permanently. The app asks you to confirm first.
 
+## Move the app
+
+The app is portable. It keeps your custom styles and your last quote and settings in a folder named `Quote-Maker Data`, beside the app. The app makes this folder when it first saves something.
+
+1. Close the app.
+2. Move the app and the `Quote-Maker Data` folder together to the new location.
+3. Open the app.
+
+**Note:** If the app cannot write to the folder, it shows a message at the top of the window and your changes are not saved. Move the app to a folder you can change.
+
 ## Privacy
 
 - The app works offline.
 - The app has no telemetry, analytics or tracking.
 - The app makes no network connections. The window loads its interface from a local server on your own computer (127.0.0.1). A content security policy blocks all other network requests.
 - Images are saved only where you select.
-- Custom styles and your last quote and settings stay on your computer:
-  - Windows: `%APPDATA%\Quote-Maker`
-  - macOS: `~/Library/Application Support/Quote-Maker`
-  - Linux: `~/.config/Quote-Maker`
+- Custom styles and your last quote and settings stay in the `Quote-Maker Data` folder beside the app. The app keeps your data in no other place.
+- While it runs, the app and its window use temporary working files in your system's temporary folder. They hold none of your saved styles, and they are normally removed when the app closes.
+- The website is separate from the app. Its demo sets your text in your browser and does not send it. The website makes one outside request, to the GitHub API, to find the latest release. GitHub can see your IP address when your browser makes this request. The website has no analytics or tracking.
 
 ## Run From Source
 
@@ -106,7 +119,7 @@ You need Python 3.10 or later. Node.js is necessary for the JavaScript tests onl
 
 On macOS and Linux, use `.venv/bin/python`. On Linux, also install the system packages in `.github/workflows/release.yml`, then run `pip install pycairo PyGObject`.
 
-A source run shows the version `v0.0.0.dev0`.
+A source run shows the version `v0.0.0.dev0`. It keeps its data in a git-ignored `Quote-Maker Data` folder in the project folder.
 
 ## Tests
 
@@ -123,6 +136,20 @@ The script needs Microsoft Edge. It uses made-up sample data only. The version l
 1. Install the brand tools: `.venv\Scripts\python -m pip install -e .[brand]`
 2. Retake the screenshots: `.venv\Scripts\python assets/make_screenshots.py`
 3. To rebuild the icon, banner and social card, run: `.venv\Scripts\python assets/make_assets.py`
+
+## Update the Website
+
+The website is in the `docs` folder. GitHub Pages serves it from `main`. The demo uses copies of the app's renderer, presets and fonts.
+
+**Note:** Do not edit the files in `docs/engine`. The script replaces them.
+
+1. Change the renderer, presets, fonts or brand images in their usual folders.
+2. Refresh the copies: `.venv\Scripts\python assets/make_site.py`
+3. Preview the website: `.venv\Scripts\python -m http.server 8766 --bind 127.0.0.1 --directory docs`
+4. Open `http://127.0.0.1:8766` in a browser.
+5. Push your changes to `main`.
+
+The page finds download files by the end of their names, such as `windows-x64.exe`. If you rename the release files, the buttons open the Releases page instead.
 
 ## Creating a Release
 
@@ -146,4 +173,4 @@ The workflow runs the tests, then builds for Windows x64, macOS Apple Silicon an
 
 Quote-Maker is licensed under the [GNU General Public License v3.0](LICENSE).
 
-The bundled fonts keep their own open licences. Each licence is in the font's folder in `quote_maker/web/fonts`.
+The bundled fonts keep their own open licences. Each licence is in the font's folder in `quote_maker/web/fonts` and `docs/engine/fonts`.

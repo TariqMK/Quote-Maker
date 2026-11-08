@@ -1,4 +1,4 @@
-"""Reads and writes custom styles and app state as JSON files in the app-data folder."""
+"""Reads and writes custom styles and app state as JSON files in a folder beside the app."""
 
 import json
 import os
@@ -8,17 +8,23 @@ import uuid
 from pathlib import Path
 
 MAX_NAME_LENGTH = 60
+DATA_FOLDER_NAME = "Quote-Maker Data"
 
 
 def data_dir() -> Path:
-    """Return the platform's usual app-data folder for Quote-Maker."""
-    if sys.platform == "win32":
-        base = Path(os.environ.get("APPDATA") or Path.home() / "AppData" / "Roaming")
-    elif sys.platform == "darwin":
-        base = Path.home() / "Library" / "Application Support"
-    else:
-        base = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
-    return base / "Quote-Maker"
+    """Return the data folder beside the app, so the app stays portable.
+
+    A packaged app keeps it beside the executable, or beside the .app bundle on macOS.
+    A source run keeps it in the project folder.
+    """
+    if not getattr(sys, "frozen", False):
+        return Path(__file__).resolve().parent.parent / DATA_FOLDER_NAME
+    executable = Path(sys.executable).resolve()
+    if sys.platform == "darwin":
+        for parent in executable.parents:
+            if parent.suffix == ".app":
+                return parent.parent / DATA_FOLDER_NAME
+    return executable.parent / DATA_FOLDER_NAME
 
 
 def _write_json(path: Path, value) -> None:
@@ -33,10 +39,13 @@ def _read_json(path: Path, default):
     """Read a JSON file. Keep a damaged file as a .damaged copy instead of losing it."""
     try:
         return json.loads(path.read_text(encoding="utf-8"))
-    except FileNotFoundError:
+    except OSError:
         return default
     except (json.JSONDecodeError, UnicodeDecodeError):
-        os.replace(path, path.with_name(path.name + ".damaged"))
+        try:
+            os.replace(path, path.with_name(path.name + ".damaged"))
+        except OSError:
+            pass  # In a read-only folder the file stays as it is, and is not overwritten.
         return default
 
 
