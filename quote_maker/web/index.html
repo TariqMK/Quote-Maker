@@ -1,0 +1,110 @@
+<!doctype html>
+<!-- The Quote-Maker window. The content security policy blocks all network access. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self'"
+    />
+    <title>Quote-Maker</title>
+    <link rel="stylesheet" href="fonts.css" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="title">
+        <h1 class="wordmark">Quote-Maker</h1>
+        <span class="version" id="version"></span>
+      </div>
+      <div class="topbar-actions">
+        <span class="status" id="status" role="status" aria-live="polite"></span>
+        <button class="button" id="copy-image" type="button">Copy image</button>
+        <button class="button primary" id="save-image" type="button">Save image</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="panel words" aria-label="Quote and image size">
+        <label class="field">
+          <span class="field-label">Quote</span>
+          <textarea id="quote" rows="9" spellcheck="true" placeholder="Paste your text here"></textarea>
+          <span class="hint">Put *stars* around words to emphasise them</span>
+        </label>
+        <label class="field">
+          <span class="field-label">Author</span>
+          <input id="author" type="text" placeholder="Optional" />
+        </label>
+        <label class="field">
+          <span class="field-label">Source</span>
+          <input id="source" type="text" placeholder="Optional, such as a book title" />
+        </label>
+
+        <div class="field">
+          <span class="field-label" id="size-label">Image size</span>
+          <div class="size-list" id="sizes" role="radiogroup" aria-labelledby="size-label"></div>
+          <div class="custom-size" id="custom-size" hidden>
+            <label>Width <input id="custom-width" type="number" min="200" max="6000" step="10" /></label>
+            <label>Height <input id="custom-height" type="number" min="200" max="6000" step="10" /></label>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="field-label" id="scale-label">Export scale</span>
+          <div class="segmented" id="scales" role="radiogroup" aria-labelledby="scale-label"></div>
+        </div>
+      </section>
+
+      <section class="stage" aria-label="Preview">
+        <div class="proof">
+          <span class="crop tl"></span><span class="crop tr"></span>
+          <span class="crop bl"></span><span class="crop br"></span>
+          <canvas id="preview"></canvas>
+        </div>
+        <p class="proof-note" id="proof-note"></p>
+      </section>
+
+      <section class="panel styles" aria-label="Styles">
+        <div class="tabs" role="tablist">
+          <button class="tab" id="tab-styles" role="tab" type="button" aria-controls="pane-styles">Styles</button>
+          <button class="tab" id="tab-tune" role="tab" type="button" aria-controls="pane-tune">Fine-tune</button>
+        </div>
+        <div class="current-style">
+          <div class="current-name">
+            <span id="style-name"></span>
+            <span class="edited" id="style-edited" hidden>Edited</span>
+          </div>
+          <div class="current-actions">
+            <button class="link" id="reset-style" type="button" hidden>Reset</button>
+            <button class="link" id="update-style" type="button" hidden>Update</button>
+            <button class="link" id="delete-style" type="button" hidden>Delete</button>
+            <button class="link" id="save-style" type="button">Save as new</button>
+          </div>
+        </div>
+
+        <div class="pane" id="pane-styles" role="tabpanel" aria-labelledby="tab-styles">
+          <div class="filters" id="filters"></div>
+          <div class="gallery" id="gallery"></div>
+          <p class="empty" id="gallery-empty" hidden>
+            Your saved styles appear here. Change a style in Fine-tune, then select Save as new.
+          </p>
+        </div>
+        <div class="pane" id="pane-tune" role="tabpanel" aria-labelledby="tab-tune" hidden></div>
+      </section>
+    </main>
+
+    <dialog id="dialog">
+      <form method="dialog" id="dialog-form">
+        <h2 id="dialog-title"></h2>
+        <p id="dialog-text"></p>
+        <input id="dialog-input" type="text" maxlength="60" aria-labelledby="dialog-title" />
+        <div class="dialog-actions">
+          <button class="button" value="cancel" type="submit" formnovalidate>Cancel</button>
+          <button class="button primary" id="dialog-confirm" value="confirm" type="submit"></button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>

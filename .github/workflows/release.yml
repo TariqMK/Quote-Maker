@@ -1,0 +1,201 @@
+# Tests the app, builds it for Windows, macOS and Linux, then creates a tag and GitHub release.
+# Run it by hand from main. It never commits or pushes to any branch.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: Release type
+        type: choice
+        options: [draft, public]
+        default: draft
+      bump:
+        description: Version change
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+
+# Queue runs without cancelling, so two releases can never pick the same version.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  test:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: python -m pip install ".[dev]"
+      - name: Check Node.js is available for the JavaScript tests
+        run: node --version
+      - name: Lint
+        run: python -m ruff check .
+      - name: Test
+        run: python -m pytest
+
+  version:
+    needs: test
+    runs-on: ubuntu-24.04
+    # Write access is needed because the API hides draft releases from read-only tokens.
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.next.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Work out the next version
+        id: next
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUMP: ${{ inputs.bump }}
+        run: |
+          set -euo pipefail
+          {
+            git tag --list
+            gh api --paginate "repos/$GITHUB_REPOSITORY/releases" --jq '.[].tag_name'
+          } > existing-tags.txt
+          tag="$(python3 .github/scripts/next_version.py "$BUMP" < existing-tags.txt)"
+          echo "Next version: $tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - target: windows-x64
+            os: windows-latest
+            mode: --onefile
+          - target: macos-arm64
+            os: macos-latest
+            mode: --onedir
+          - target: linux-x64
+            os: ubuntu-24.04
+            mode: --onefile
+    env:
+      TAG: ${{ needs.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Stop if the macOS runner is not Apple Silicon
+        if: runner.os == 'macOS'
+        run: test "$(uname -m)" = "arm64"
+
+      - name: Install Linux system packages
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgirepository-2.0-dev libcairo2-dev pkg-config \
+            gir1.2-gtk-3.0 gir1.2-webkit2-4.1
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: python -m pip install ".[dev]"
+
+      - name: Install the Linux window toolkit
+        if: runner.os == 'Linux'
+        run: python -m pip install pycairo PyGObject
+
+      - name: Check the window toolkit is available
+        run: |
+          case "$RUNNER_OS" in
+            Windows) python -c "import clr, webview" ;;
+            macOS) python -c "import WebKit, webview" ;;
+            Linux) python -c "import gi, webview; gi.require_version('WebKit2', '4.1'); from gi.repository import WebKit2" ;;
+          esac
+
+      - name: Apply the version on this runner only
+        run: |
+          printf '"""The app version, set by the release build."""\n\n__version__ = "%s"\n' "${TAG#v}" > quote_maker/_version.py
+          cat quote_maker/_version.py
+
+      - name: Build
+        run: >
+          python -m PyInstaller --noconfirm --clean ${{ matrix.mode }} --windowed
+          --name Quote-Maker --paths .
+          --add-data "quote_maker/web:quote_maker/web"
+          quote_maker/__main__.py
+
+      - name: Check the packaged app contains every file
+        run: |
+          case "$RUNNER_OS" in
+            Windows) python .github/scripts/check_bundle.py dist/Quote-Maker.exe ;;
+            macOS) python .github/scripts/check_bundle.py dist/Quote-Maker.app ;;
+            Linux) python .github/scripts/check_bundle.py dist/Quote-Maker ;;
+          esac
+
+      - name: Package
+        run: |
+          mkdir upload
+          name="Quote-Maker-$TAG-${{ matrix.target }}"
+          case "$RUNNER_OS" in
+            Windows) mv dist/Quote-Maker.exe "upload/$name.exe" ;;
+            macOS) ditto -c -k --keepParent dist/Quote-Maker.app "upload/$name.zip" ;;
+            Linux) tar -czf "upload/$name.tar.gz" -C dist Quote-Maker ;;
+          esac
+          ls -la upload
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.target }}
+          path: upload/*
+          if-no-files-found: error
+
+  release:
+    # Runs only after every build succeeds, so there is never a partial release.
+    needs: [version, build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ needs.version.outputs.tag }}
+      RELEASE_TYPE: ${{ inputs.release_type }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: files
+          merge-multiple: true
+
+      - name: Check all three files are present
+        run: |
+          ls -la files
+          test "$(find files -type f | wc -l)" -eq 3
+
+      - name: Create the tag on the commit that was built
+        run: gh api "repos/$GITHUB_REPOSITORY/git/refs" -f "ref=refs/tags/$TAG" -f "sha=$GITHUB_SHA"
+
+      - name: Create the release
+        run: |
+          flags=()
+          if [ "$RELEASE_TYPE" = "draft" ]; then flags+=(--draft); fi
+          gh release create "$TAG" files/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title "Quote-Maker $TAG" \
+            --generate-notes \
+            "${flags[@]}"

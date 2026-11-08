@@ -1,0 +1,36 @@
+# Project metadata, dependencies and tool settings for Quote-Maker.
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quote-maker"
+dynamic = ["version"]
+description = "Turn pasted text into quote images. Works offline."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
+dependencies = ["pywebview>=6.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6", "pyinstaller>=6.10"]
+
+[project.gui-scripts]
+quote-maker = "quote_maker.app:main"
+
+[tool.setuptools]
+packages = ["quote_maker"]
+
+[tool.setuptools.dynamic]
+version = { attr = "quote_maker._version.__version__" }
+
+[tool.setuptools.package-data]
+quote_maker = ["web/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
