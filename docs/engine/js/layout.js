@@ -1,5 +1,26 @@
 // Text layout with no drawing: breaks words into even lines and finds the size that fits.
 
+function luminance(hex) {
+  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+  if (!match) return null;
+  const [r, g, b] = match.slice(1).map((pair) => {
+    const value = parseInt(pair, 16) / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+const contrast = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+
+// Keeps the style's text colour on a highlight band when it can be read there.
+// Otherwise returns near-black or white, whichever reads better.
+export function readableInk(band, ink) {
+  const bandLight = luminance(band) ?? 1;
+  const inkLight = luminance(ink);
+  if (inkLight !== null && contrast(bandLight, inkLight) >= 4.5) return ink;
+  return contrast(bandLight, luminance("#141414")) >= contrast(bandLight, 1) ? "#141414" : "#ffffff";
+}
+
 // Breaks one paragraph at the given size. balanced=true evens out line lengths across the
 // paragraph; otherwise each line takes as many words as fit.
 export function breakLines(widths, spaceWidth, maxWidth, balanced = true) {

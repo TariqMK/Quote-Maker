@@ -4,7 +4,7 @@ import * as bridge from "./bridge.js";
 import { renderControls, setPath } from "./controls.js";
 import { CATEGORIES, PRESETS, mergeDeep, withDefaults } from "./presets.js";
 import { ensureFonts, renderQuote } from "./render.js";
-import { suggestFilename } from "./text.js";
+import { HIGHLIGHTS, applyHighlight, suggestFilename } from "./text.js";
 
 const SIZES = [
   { id: "square", name: "Square", width: 1080, height: 1080 },
@@ -136,6 +136,58 @@ function changed() {
 }
 
 // Left panel
+
+// Applies a colour to the words selected in Quote. A null colour removes the highlight.
+function highlightSelection(color) {
+  const field = $("quote");
+  const result = applyHighlight(field.value, field.selectionStart, field.selectionEnd, color);
+  if (!result) {
+    setStatus("Select words in Quote first");
+    return;
+  }
+  setStatus("");
+  field.focus();
+  field.select();
+  // insertText keeps Ctrl+Z working and sends the input event that updates the preview.
+  if (!document.execCommand("insertText", false, result.text)) {
+    field.value = result.text;
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  // The selection stays on the words, so another colour can be tried straight away.
+  field.setSelectionRange(result.start, result.end);
+}
+
+function renderHighlights() {
+  // The selection in Quote must stay in place while a colour button is pressed.
+  const keepSelection = (event) => event.preventDefault();
+  const swatches = Object.entries(HIGHLIGHTS).map(([name, color]) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "highlight-swatch";
+    button.style.backgroundColor = color;
+    const label = `${name[0].toUpperCase()}${name.slice(1)}`;
+    button.title = label;
+    button.setAttribute("aria-label", label);
+    button.addEventListener("mousedown", keepSelection);
+    button.addEventListener("click", () => highlightSelection(name));
+    return button;
+  });
+  const custom = document.createElement("input");
+  custom.type = "color";
+  custom.value = "#7fd1ae";
+  custom.className = "highlight-custom";
+  custom.title = "Custom colour";
+  custom.setAttribute("aria-label", "Custom colour");
+  // "change" waits for the colour picker to close, because moving focus could close it early.
+  custom.addEventListener("change", () => highlightSelection(custom.value));
+  const clear = document.createElement("button");
+  clear.type = "button";
+  clear.className = "link";
+  clear.textContent = "Clear";
+  clear.addEventListener("mousedown", keepSelection);
+  clear.addEventListener("click", () => highlightSelection(null));
+  $("highlights").replaceChildren(...swatches, custom, clear);
+}
 
 function renderSizes() {
   const list = $("sizes");
@@ -465,6 +517,7 @@ function renderAll() {
 async function start() {
   state.style = clone(PRESETS[0]);
   bindEvents();
+  renderHighlights();
   showTab("styles");
   renderAll(); // Show the window content straight away, then restore saved work.
   await bridge.connect();

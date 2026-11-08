@@ -2,8 +2,8 @@
 // Style sizes are in units of 1/1080 of the image's shorter side, so a style works at any size.
 
 import { FONTS } from "./fonts.js";
-import { fitText } from "./layout.js";
-import { cleanLine, cleanQuote, isRtl, parseParagraphs } from "./text.js";
+import { fitText, readableInk } from "./layout.js";
+import { cleanLine, cleanQuote, isRtl, parseParagraphs, stripHighlights } from "./text.js";
 
 const FALLBACK = '"Segoe UI", "Noto Sans", "Noto Naskh Arabic", system-ui, sans-serif';
 const MARK_GLYPH = "“";
@@ -219,16 +219,15 @@ function wrapInMarks(paragraphs) {
   lastWord.parts.at(-1).text += "”";
 }
 
-function drawLine(ctx, line, x, y, size, spec) {
-  const { q, u, rtl } = spec;
+// Splits a line into runs of one kind and finds where each run starts and how wide it is.
+function measureLine(ctx, line, x, size, spec) {
+  const { q, rtl } = spec;
   const normal = fontString(q.font, q.weight, q.italic, size);
   const emphatic = emphasisFont(q, size);
   const cased = (text) => (q.uppercase ? text.toLocaleUpperCase() : text);
   setSpacing(ctx, `${q.letterSpacing * size}px`);
   ctx.font = normal;
   const space = ctx.measureText(" ").width;
-  ctx.textAlign = "left";
-  ctx.textBaseline = "alphabetic";
   ctx.direction = rtl ? "rtl" : "ltr";
 
   // Merge neighbouring words of the same kind, so kerning and joined scripts stay intact.
@@ -237,10 +236,10 @@ function drawLine(ctx, line, x, y, size, spec) {
     word.parts.forEach((part, partIndex) => {
       const last = runs.at(-1);
       const joined = partIndex > 0;
-      if (last && last.em === part.em) {
+      if (last && last.em === part.em && last.hl === part.hl) {
         last.text += (joined ? "" : " ") + cased(part.text);
       } else {
-        runs.push({ text: cased(part.text), em: part.em, spaced: !joined && wordIndex > 0 });
+        runs.push({ text: cased(part.text), em: part.em, hl: part.hl, spaced: !joined && wordIndex > 0 });
       }
     });
   });
@@ -250,18 +249,48 @@ function drawLine(ctx, line, x, y, size, spec) {
   runs.forEach((run, index) => {
     const spacedBefore = rtl ? runs[index - 1]?.spaced : run.spaced;
     if (index > 0 && spacedBefore) cursor += space;
-    ctx.font = run.em ? emphatic : normal;
-    ctx.fillStyle = run.em && q.emphasis === "color" ? q.emphasisColor : q.color;
-    if (q.shadowBlur > 0 || q.shadowY !== 0) {
-      ctx.shadowColor = q.shadowColor;
-      ctx.shadowBlur = q.shadowBlur * u;
-      ctx.shadowOffsetY = q.shadowY * u;
-    }
-    const drawX = rtl ? cursor + ctx.measureText(run.text).width : cursor;
-    if (rtl) ctx.textAlign = "right";
-    ctx.fillText(run.text, drawX, y);
-    cursor += ctx.measureText(run.text).width;
+    run.font = run.em ? emphatic : normal;
+    ctx.font = run.font;
+    run.x = cursor;
+    run.width = ctx.measureText(run.text).width;
+    cursor += run.width;
   });
+  setSpacing(ctx, "0px");
+  ctx.direction = "ltr";
+  return runs;
+}
+
+// Draws one band for each stretch of a line in one highlight colour, including its spaces.
+function paintBands(ctx, runs, y, size) {
+  const pad = size * 0.08;
+  for (let i = 0; i < runs.length; i += 1) {
+    const color = runs[i].hl;
+    if (!color) continue;
+    const first = runs[i];
+    while (runs[i + 1]?.hl === color) i += 1;
+    ctx.fillStyle = color;
+    ctx.fillRect(first.x - pad, y - size * 0.8, runs[i].x + runs[i].width - first.x + pad * 2, size * 1.06);
+  }
+}
+
+function drawRuns(ctx, runs, y, size, spec) {
+  const { q, u, rtl } = spec;
+  setSpacing(ctx, `${q.letterSpacing * size}px`);
+  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = rtl ? "right" : "left";
+  ctx.direction = rtl ? "rtl" : "ltr";
+  const hasShadow = q.shadowBlur > 0 || q.shadowY !== 0;
+  for (const run of runs) {
+    const ink = run.em && q.emphasis === "color" ? q.emphasisColor : q.color;
+    ctx.font = run.font;
+    ctx.fillStyle = run.hl ? readableInk(run.hl, ink) : ink;
+    // A text shadow would smudge the flat band, so highlighted text has none.
+    const shadowed = hasShadow && !run.hl;
+    ctx.shadowColor = shadowed ? q.shadowColor : "transparent";
+    ctx.shadowBlur = shadowed ? q.shadowBlur * u : 0;
+    ctx.shadowOffsetY = shadowed ? q.shadowY * u : 0;
+    ctx.fillText(run.text, rtl ? run.x + run.width : run.x, y);
+  }
   ctx.shadowColor = "transparent";
   ctx.shadowBlur = 0;
   ctx.shadowOffsetY = 0;
@@ -329,7 +358,7 @@ export function renderQuote(ctx, { width, height, quote, author, source, style }
 
   const paragraphs = parseParagraphs(text);
   if (mark.type === "inline") wrapInMarks(paragraphs);
-  const rtl = isRtl(text);
+  const rtl = isRtl(stripHighlights(text));
   const align = rtl && box.align === "left" ? "right" : box.align;
   const space100 = measureParagraphs(ctx, paragraphs, q);
 
@@ -397,9 +426,13 @@ export function renderQuote(ctx, { width, height, quote, author, source, style }
   const lineHeightPx = fitted.size * q.lineHeight;
   const baselineOffset = lineHeightPx / 2 + fitted.size * 0.33;
   const spec = { q, u, rtl };
-  fitted.lines.forEach((line) => {
-    drawLine(ctx, line, lineX(line.width), textTop + line.y + baselineOffset, fitted.size, spec);
-  });
+  const placed = fitted.lines.map((line) => ({
+    y: textTop + line.y + baselineOffset,
+    runs: measureLine(ctx, line, lineX(line.width), fitted.size, spec),
+  }));
+  // All bands go first, so a band can never cover the text of the line above it.
+  placed.forEach(({ runs, y: baseline }) => paintBands(ctx, runs, baseline, fitted.size));
+  placed.forEach(({ runs, y: baseline }) => drawRuns(ctx, runs, baseline, fitted.size, spec));
 
   let y = textTop + fitted.height + gap * (rule.type === "short" ? 0.6 : 1);
   if (rule.type === "short" && hasAttribution) {

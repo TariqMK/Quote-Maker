@@ -11,7 +11,8 @@ Try the working demo on the [Quote-Maker website](https://tariqmk.github.io/Quot
 
 ## Features
 
-- 28 preset styles in 5 categories: Classic, Modern, Bold, Soft and Retro.
+- 25+ preset styles in 5 categories: Classic, Modern, Bold, Soft and Retro.
+- Highlights behind selected words, in 6 preset colours or a custom colour.
 - Fine-tune controls for text, author and source, background, quote mark, frame and layout.
 - Custom styles that you save, update and delete.
 - 24 bundled font families.
@@ -52,6 +53,19 @@ Try the working demo on the [Quote-Maker website](https://tariqmk.github.io/Quot
 - A line break stays in the image. A blank line adds a gap.
 
 **Note:** The bundled fonts contain Latin characters only. Other alphabets use the fonts installed on your computer, so they can look different on another computer.
+
+## Highlight words
+
+1. Select words in **Quote**.
+2. Under **Highlight**, select a colour: yellow, green, blue, pink, orange or red. To use another colour, select the custom colour box.
+
+The app adds a mark to the text, such as `[yellow: these words]` or `[#7fd1ae: these words]`. You can also type a mark or delete it. The mark does not appear in the image.
+
+- To change a colour, select the words again, then select the new colour.
+- To remove a highlight, select the words, then select **Clear**.
+- Highlights work in **Quote** only. **Author** and **Source** do not have them.
+- The text keeps the style's colour when it is readable on the highlight. If it is not readable, the text changes to near-black or white.
+- A highlight removes the style's text shadow from those words.
 
 ## Image sizes
 

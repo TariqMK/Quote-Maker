@@ -2,6 +2,7 @@
 
 import { CATEGORIES, PRESETS, mergeDeep, withDefaults } from "./engine/js/presets.js";
 import { ensureFonts, renderQuote } from "./engine/js/render.js";
+import { HIGHLIGHTS, applyHighlight } from "./engine/js/text.js";
 
 const REPO = "TariqMK/Quote-Maker";
 const ASSET = { windows: /windows-x64\.exe$/i, macos: /macos-arm64\.zip$/i, linux: /linux-x64\.tar\.gz$/i };
@@ -17,10 +18,13 @@ const THUMB = { quote: "Words *worth* keeping", author: "Author", size: 400, tex
 const WALL = { width: 432, height: 540 };
 const SIZE_PROOF_SCALE = 0.3;
 const EMPHASIS_SAMPLE = "Start with the *best* line";
+const HIGHLIGHT_SAMPLE = "Start with the [yellow: best] line";
+const HIGHLIGHT_HINT = "Select words in Quote, then select a colour";
 const EMPHASIS_KINDS = [
   { name: "Italic", overrides: { emphasis: "italic" } },
   { name: "Bold", overrides: { emphasis: "bold" } },
   { name: "Colour", overrides: { emphasis: "color", emphasisColor: "#a2371f" } },
+  { name: "Highlight", overrides: {}, sample: HIGHLIGHT_SAMPLE },
 ];
 
 const $ = (id) => document.getElementById(id);
@@ -142,6 +146,51 @@ function requestPreview() {
 }
 
 // Window controls
+
+// Applies a colour to the words selected in Quote. A null colour removes the highlight.
+function highlightSelection(color) {
+  const field = $("quote");
+  const result = applyHighlight(field.value, field.selectionStart, field.selectionEnd, color);
+  $("highlight-hint").textContent = result ? HIGHLIGHT_HINT : "Select words in Quote first";
+  if (!result) return;
+  field.focus();
+  field.select();
+  // insertText keeps Ctrl+Z working and sends the input event that updates the preview.
+  if (!document.execCommand("insertText", false, result.text)) {
+    field.value = result.text;
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  // The selection stays on the words, so another colour can be tried straight away.
+  field.setSelectionRange(result.start, result.end);
+}
+
+function renderHighlights() {
+  // The selection in Quote must stay in place while a colour button is pressed.
+  const keepSelection = (event) => event.preventDefault();
+  const swatches = Object.entries(HIGHLIGHTS).map(([name, color]) => {
+    const button = el("button", "highlight-swatch");
+    button.type = "button";
+    button.style.backgroundColor = color;
+    const label = `${name[0].toUpperCase()}${name.slice(1)}`;
+    button.title = label;
+    button.setAttribute("aria-label", label);
+    button.addEventListener("mousedown", keepSelection);
+    button.addEventListener("click", () => highlightSelection(name));
+    return button;
+  });
+  const custom = el("input");
+  custom.type = "color";
+  custom.value = "#7fd1ae";
+  custom.title = "Custom colour";
+  custom.setAttribute("aria-label", "Custom colour");
+  // "change" waits for the colour picker to close, because moving focus could close it early.
+  custom.addEventListener("change", () => highlightSelection(custom.value));
+  const clear = el("button", "highlight-clear", "Clear");
+  clear.type = "button";
+  clear.addEventListener("mousedown", keepSelection);
+  clear.addEventListener("click", () => highlightSelection(null));
+  $("highlights").replaceChildren(...swatches, custom, clear);
+}
 
 function renderSizes() {
   $("sizes").replaceChildren(
@@ -282,7 +331,7 @@ function buildEmphasis() {
       item.append(canvas, el("p", "", kind.name));
       const style = mergeDeep(base, { quote: { ...kind.overrides, size: 150 }, layout: { margin: 70 } });
       register(canvas, (target) =>
-        drawStyled(target, 480, 480, style, { quote: EMPHASIS_SAMPLE, author: "", source: "" }),
+        drawStyled(target, 480, 480, style, { quote: kind.sample ?? EMPHASIS_SAMPLE, author: "", source: "" }),
       );
       return item;
     }),
@@ -359,6 +408,7 @@ function setUpDownloads() {
 
 function start() {
   bindWords();
+  renderHighlights();
   renderSizes();
   renderFilters();
   renderGallery();

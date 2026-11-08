@@ -11,7 +11,7 @@
     <title>Quote-Maker: any words, many styles, one image</title>
     <meta
       name="description"
-      content="A free desktop app that turns pasted text into a quote image. 28 styles, 24 bundled fonts, full control. Works offline and sends no data."
+      content="A free desktop app that turns pasted text into a quote image. 25+ styles, 24 bundled fonts, full control. Works offline and sends no data."
     />
     <meta name="theme-color" content="#0e0e0f" />
     <meta name="color-scheme" content="dark" />
@@ -106,9 +106,14 @@
                 <section class="panel words" aria-label="Quote and image size">
                   <label class="field">
                     <span class="field-label">Quote</span>
-                    <textarea id="quote" rows="5" spellcheck="false"></textarea>
+                    <textarea id="quote" rows="4" spellcheck="false"></textarea>
                     <span class="hint">Put *stars* around words to emphasise them</span>
                   </label>
+                  <div class="field">
+                    <span class="field-label" id="highlight-label">Highlight</span>
+                    <div class="highlight-row" id="highlights" role="group" aria-labelledby="highlight-label"></div>
+                    <span class="hint" id="highlight-hint" aria-live="polite">Select words in Quote, then select a colour</span>
+                  </div>
                   <label class="field">
                     <span class="field-label">Author</span>
                     <input id="author" type="text" placeholder="Optional" />
@@ -166,7 +171,7 @@
       <section class="sheet" id="features">
         <div class="wrap">
           <div class="section-head">
-            <h2 class="section-title">The same words, set 28 ways</h2>
+            <h2 class="section-title">The same words, set 25+ ways</h2>
             <p>
               Every proof on this sheet uses the words in the window above. Change them, and the sheet changes too.
               Select a proof to open it in the window.
@@ -181,9 +186,10 @@
               <div class="size-proofs" id="size-proofs"></div>
             </div>
             <div class="feature-panel">
-              <h3>Stars mark the words that matter</h3>
+              <h3>Mark the words that matter</h3>
               <p>
-                Type <code>Start with the *best* line</code>. The style sets the emphasis to italic, bold or colour.
+                Type <code>Start with the *best* line</code>, and the style sets the emphasis to italic, bold or
+                colour. Or select words and select a colour to highlight them.
               </p>
               <div class="emphasis" id="emphasis"></div>
             </div>
@@ -191,7 +197,7 @@
 
           <div class="feature-grid">
             <div>
-              <h3>28 preset styles</h3>
+              <h3>25+ preset styles</h3>
               <p>Five categories: Classic, Modern, Bold, Soft and Retro.</p>
             </div>
             <div>
@@ -207,12 +213,12 @@
               <p>They come inside the app and cover Latin characters. Other alphabets use your installed fonts.</p>
             </div>
             <div>
-              <h3>5 image sizes</h3>
-              <p>Square, Portrait, Landscape, Story, or Custom from 200 to 6000 px per side.</p>
+              <h3>Highlights in any colour</h3>
+              <p>Mark words with a band in one of 6 preset colours or a custom colour. Text stays readable on it.</p>
             </div>
             <div>
-              <h3>3 export scales</h3>
-              <p>A scale of 2x makes a 2160 × 2700 px image from a size of 1080 × 1350 px.</p>
+              <h3>5 image sizes, 3 export scales</h3>
+              <p>Square, Portrait, Landscape, Story, or Custom from 200 to 6000 px per side, saved at 1x, 2x or 3x.</p>
             </div>
             <div>
               <h3>Text that fits</h3>

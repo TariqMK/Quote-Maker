@@ -335,6 +335,51 @@ input::placeholder {
   color: var(--text-3);
 }
 
+.highlight-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+}
+
+.highlight-swatch {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 120ms var(--ease);
+}
+
+.highlight-swatch:active {
+  transform: scale(0.94);
+}
+
+.highlight-row input[type="color"] {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 1px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.highlight-clear {
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  cursor: pointer;
+  transition: color 150ms var(--ease);
+}
+
+.highlight-clear:hover {
+  color: var(--text);
+}
+
 .size-list {
   display: flex;
   flex-direction: column;
@@ -560,7 +605,7 @@ input::placeholder {
 /* The sheet of 28 proofs */
 .proof-wall {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 32px 16px;
 }
 
@@ -686,7 +731,7 @@ input::placeholder {
 
 .emphasis {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
   margin-top: auto;
   padding-top: 48px;
@@ -809,7 +854,7 @@ input::placeholder {
   }
 
   .proof-wall {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .panel-pair {
@@ -983,7 +1028,8 @@ input::placeholder {
   }
 
   .emphasis {
-    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
     padding-top: 32px;
   }
 

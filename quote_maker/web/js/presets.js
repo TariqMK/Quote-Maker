@@ -97,6 +97,15 @@ export const PRESETS = [
     author: { font: "EB Garamond", size: 36, letterSpacing: 0 },
     source: { font: "EB Garamond", italic: true, size: 32 },
   }),
+  preset("Aged page", "Classic", tone("#2b1d10", "#5e4a30", {
+    background: { type: "radial", color1: "#ecdfc0", color2: "#e0cda3", color3: "#a98a56" },
+    texture: { type: "grain", opacity: 0.22 },
+    rule: { type: "short", width: 70, thickness: 2 },
+    quote: { font: "EB Garamond", weight: 500, size: 88, lineHeight: 1.32 },
+    author: { font: "EB Garamond", weight: 500, size: 28, uppercase: true, letterSpacing: 0.14, dash: false },
+    source: { font: "EB Garamond", italic: true, size: 32 },
+    layout: { margin: 130 },
+  })),
   preset("Engraved", "Classic", tone("#22303a", "#5a6a75", {
     background: { color1: "#f4f1ea" },
     frame: { type: "double", width: 2, inset: 44 },
