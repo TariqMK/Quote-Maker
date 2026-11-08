@@ -3,6 +3,7 @@
 import argparse
 import base64
 import binascii
+import sys
 from pathlib import Path
 
 import webview
@@ -11,6 +12,8 @@ from quote_maker._version import __version__
 from quote_maker.storage import Storage, safe_filename
 
 WEB_DIR = Path(__file__).parent / "web"
+# macOS ignores this and takes the window icon from the app bundle.
+WINDOW_ICON = WEB_DIR / ("icon.ico" if sys.platform == "win32" else "icon.png")
 PNG_PREFIX = "data:image/png;base64,"
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
@@ -90,7 +93,7 @@ def main() -> None:
         background_color="#18181a",
     )
     api.attach(window)
-    webview.start(debug=args.debug, private_mode=True)
+    webview.start(debug=args.debug, private_mode=True, icon=str(WINDOW_ICON))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <title>Quote-Maker, simplified for 16, 20, 24 and 32 px</title>
+  <rect x="16" y="16" width="992" height="992" rx="190" fill="#18181a"/>
+  <path d="M390 150H150V390M634 874H874V634" fill="none" stroke="#eeeeec" stroke-width="128"/>
+  <g fill="#ef6a48">
+    <g transform="translate(405 590) scale(.84)">
+      <circle r="96"/>
+      <path d="M-96 0C-96-130-30-230 70-280L100-236C50-200 24-160 18-96Z"/>
+    </g>
+    <g transform="translate(615 590) scale(.84)">
+      <circle r="96"/>
+      <path d="M-96 0C-96-130-30-230 70-280L100-236C50-200 24-160 18-96Z"/>
+    </g>
+  </g>
+</svg>

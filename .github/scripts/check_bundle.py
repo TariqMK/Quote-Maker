@@ -14,6 +14,8 @@ REQUIRED = [
     "quote_maker/web/js/render.js",
     "quote_maker/web/js/presets.js",
     "quote_maker/web/js/fonts.js",
+    "quote_maker/web/icon.ico",
+    "quote_maker/web/icon.png",
 ]
 MIN_FONT_FILES = 24
 MIN_FONT_LICENCES = 24

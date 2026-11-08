@@ -1,6 +1,11 @@
-# Quote-Maker
+![Quote-Maker. Any words. Many styles. One image.](assets/banner.png)
 
 Quote-Maker turns pasted text into a quote image. Select a style, adjust it, and save a PNG. Works offline. Sends no data.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/editor-dark.png">
+  <img src="assets/screenshots/editor-light.png" alt="Quote-Maker with a quote in the Oxblood style: the text fields on the left, the image preview in the centre and the style gallery on the right" width="840">
+</picture>
 
 ## Features
 
@@ -58,12 +63,22 @@ The caption below the preview shows the image size. It also shows when the text 
 
 ## Custom styles
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/fine-tune-dark.png">
+  <img src="assets/screenshots/fine-tune-light.png" alt="The Fine-tune tab open beside the Sunset poster style, with controls for font, weight, colour, size and spacing" width="840">
+</picture>
+
 1. Select a style in the **Styles** tab.
 2. Open the **Fine-tune** tab and change the controls.
 3. Select **Save as new**.
 4. Enter a name, then select **Save style**.
 
 The style appears under **My styles**.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/my-styles-dark.png">
+  <img src="assets/screenshots/my-styles-light.png" alt="My styles showing three saved styles, with one applied to a landscape image" width="840">
+</picture>
 
 - To save more changes to a custom style, select **Update**.
 - To undo changes since the last save, select **Reset**.
@@ -101,6 +116,14 @@ Run all tests:
 .venv\Scripts\python -m pytest
 ```
 
+## Update the Screenshots
+
+The script needs Microsoft Edge. It uses made-up sample data only. The version label shows the newest version tag in the repository.
+
+1. Install the brand tools: `.venv\Scripts\python -m pip install -e .[brand]`
+2. Retake the screenshots: `.venv\Scripts\python assets/make_screenshots.py`
+3. To rebuild the icon, banner and social card, run: `.venv\Scripts\python assets/make_assets.py`
+
 ## Creating a Release
 
 1. Push your changes to `main`.
@@ -114,7 +137,7 @@ Run all tests:
 
 The workflow runs the tests, then builds for Windows x64, macOS Apple Silicon and Linux x64. It creates the tag and release only after all three builds succeed.
 
-- **Version:** The workflow finds the highest `vX.Y.Z` in the git tags and GitHub releases, including drafts, and then increases it. The first patch release is `v0.0.1`.
+- **Version:** The workflow finds the highest `vX.Y.Z` in the git tags and GitHub releases, including drafts, and then increases it. For example, a patch release after `v1.0.0` is `v1.0.1`.
 - **Source version:** The workflow applies the version on the build machine. It never commits or pushes to a branch.
 - **Release notes:** GitHub generates them. Replace them with your own before you publish.
 - **Secrets:** None are necessary. The workflow uses the token that GitHub provides.

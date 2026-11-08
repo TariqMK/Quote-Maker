@@ -15,6 +15,7 @@ dependencies = ["pywebview>=6.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6", "pyinstaller>=6.10"]
+brand = ["PySide6-Essentials>=6.8", "fonttools>=4.50", "brotli>=1.1", "playwright>=1.50"]
 
 [project.gui-scripts]
 quote-maker = "quote_maker.app:main"

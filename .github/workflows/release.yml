@@ -87,12 +87,16 @@ jobs:
           - target: windows-x64
             os: windows-latest
             mode: --onefile
+            icon: --icon assets/icon/quote-maker.ico
           - target: macos-arm64
             os: macos-latest
             mode: --onedir
+            icon: --icon assets/icon/quote-maker.icns
+          # Linux executables have no file icon. The window icon comes from the app.
           - target: linux-x64
             os: ubuntu-24.04
             mode: --onefile
+            icon: ""
     env:
       TAG: ${{ needs.version.outputs.tag }}
     steps:
@@ -136,6 +140,7 @@ jobs:
       - name: Build
         run: >
           python -m PyInstaller --noconfirm --clean ${{ matrix.mode }} --windowed
+          ${{ matrix.icon }}
           --name Quote-Maker --paths .
           --add-data "quote_maker/web:quote_maker/web"
           quote_maker/__main__.py
@@ -147,6 +152,10 @@ jobs:
             macOS) python .github/scripts/check_bundle.py dist/Quote-Maker.app ;;
             Linux) python .github/scripts/check_bundle.py dist/Quote-Maker ;;
           esac
+
+      - name: Stop if the macOS app has no icon
+        if: runner.os == 'macOS'
+        run: ls dist/Quote-Maker.app/Contents/Resources/*.icns
 
       - name: Package
         run: |

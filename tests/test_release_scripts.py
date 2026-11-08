@@ -1,22 +1,58 @@
-"""Checks the release scripts: the next version number and the packaged-file check."""
+"""Checks the release scripts and the version the screenshot script shows."""
 
 import importlib.util
+import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
+
+from quote_maker._version import __version__
 
 ROOT = Path(__file__).parent.parent
 
 
-def load_script(name):
-    spec = importlib.util.spec_from_file_location(name, ROOT / ".github" / "scripts" / f"{name}.py")
+def load_module(name, path):
+    spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
+def load_script(name):
+    return load_module(name, ROOT / ".github" / "scripts" / f"{name}.py")
+
+
 next_version = load_script("next_version").next_version
 check_bundle = load_script("check_bundle")
+
+
+@pytest.fixture
+def screenshots(monkeypatch):
+    """Load the screenshot script without letting it contact the git remote."""
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: SimpleNamespace(stdout="v3.2.1\n"))
+    return load_module("make_screenshots", ROOT / "assets" / "make_screenshots.py")
+
+
+@pytest.mark.parametrize(
+    ("tags", "expected"),
+    [
+        ([], None),
+        (["latest", "v1.2", "v1.2.3-beta"], None),
+        (["v1.9.0", "v1.10.0", "notes"], "1.10.0"),
+        (["v2.0.0\n", "v1.99.99"], "2.0.0"),
+    ],
+)
+def test_screenshots_show_the_newest_version_tag(screenshots, tags, expected):
+    assert screenshots.newest_version(tags) == expected
+
+
+def test_screenshots_read_the_version_from_the_repository(screenshots):
+    assert screenshots.SHOWN_VERSION == "3.2.1"
+
+
+def test_screenshots_can_read_the_source_version(screenshots):
+    assert screenshots.source_version() == __version__
 
 
 @pytest.mark.parametrize(
