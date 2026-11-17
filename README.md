@@ -1,6 +1,6 @@
 ![Quotical. Any words. Many styles.](assets/banner.png)
 
-Quotical turns pasted text into a quote image, an image that looks like a social media post, or an article into a carousel of slides. Select a style, adjust it, and save PNG or JPG files. Works offline. Sends no data.
+Quotical turns pasted text into a quote image, an image that looks like a social media post, or an article into a carousel of slides. Select a style, adjust it, and save PNG or JPG files. Works offline. No tracking.
 
 Try the working demo on the [Quotical website](https://tariqmk.github.io/Quotical/).
 
@@ -16,7 +16,7 @@ Try the working demo on the [Quotical website](https://tariqmk.github.io/Quotica
 - 6 carousel styles. Carousel text splits into slides automatically, or where you add a slide break.
 - 10 post styles in 4 layouts: Short post, Work post, Thread post and Photo post. Each post shows your picture or initials, name, handle, verified badge and date. The images show no platform logos.
 - Highlights behind selected words, in 6 preset colours or a custom colour.
-- Fine-tune controls for text, background, frame and layout in each mode.
+- Fine-tune controls for text, background, frame and layout in each mode. Backgrounds include paper grain and a book page with faint text showing through.
 - Custom styles that you save, update and delete.
 - 24 bundled font families.
 - Quote text that shrinks automatically to fit the image.
@@ -74,6 +74,7 @@ The app adds a mark to the text, such as `[yellow: these words]` or `[#7fd1ae: t
 - In **Post**, highlights work in **Post** only.
 - The text keeps the style's colour when it is readable on the highlight. If it is not readable, the text changes to near-black or white.
 - A highlight removes the style's text shadow from those words.
+- To highlight every line of a quote, like a highlighter pen on a book page, use **Highlight every line** under **Quote text** in the **Fine-tune** tab. The **Highlighted page** style uses it. Words with their own highlight keep their colour.
 
 ## Make a carousel
 
@@ -140,7 +141,7 @@ The slide keys do not work while the cursor is in a text field.
 1. At the top of the window, select **Post**.
 2. Optional: under **Picture**, select **Choose picture**, then select a PNG, JPEG, GIF or WebP file. Without a picture, the post shows the initials of **Name**.
 3. Enter a **Name** and a **Handle**.
-4. Optional: select or clear **Verified badge**.
+4. Optional: select or clear **Verified badge**. To remove the like, reply and share icons, clear **Action icons**.
 5. Paste your text into **Post**.
 6. Optional: enter a **Date**, such as `9:41 AM · Nov 17, 2026` or `2h`. The app shows the text as you type it.
 7. Select a style in the **Styles** tab.
@@ -162,7 +163,7 @@ The slide keys do not work while the cursor is in a text field.
 | Thread post | Picture on the left. The name, handle and date on one line, with the text and action icons below them. |
 | Photo post | Picture, handle and name at the top. The text on a coloured square. Action icons and the date at the bottom. |
 
-To change the layout of any style, use **Post layout** under **Layout** in the **Fine-tune** tab. To remove the action icons, clear **Action icons** under **Name and details**.
+To change the layout of any style, use **Post layout** under **Layout** in the **Fine-tune** tab. Without action icons, the card is shorter and the text has more room.
 
 ### Post text
 
@@ -224,11 +225,28 @@ The app is portable. It keeps your custom styles and your last work and settings
 
 **Note:** If the app cannot write to the folder, it shows a message at the top of the window and your changes are not saved. Move the app to a folder you can change.
 
+## Check for updates
+
+The app checks for a new version only when you ask.
+
+1. At the top left of the window, select the version number, such as `v1.5.0`.
+2. Read the result:
+   - **Quotical is up to date.** No action is necessary.
+   - **Quotical v1.6.0 is available.** Select **Open release page**. The release page opens in your browser. Download the new version there.
+3. To read what changed, open **Release notes** in the result.
+
+**Note:** The app does not download or install anything. To update, replace the old app with the new one, beside your `Quotical Data` folder.
+
+- If a newer version is found, the version number changes colour until you close the app.
+- A version run from source shows **This is a development build.**
+- If the check fails, the message says why, such as no internet connection.
+
 ## Privacy
 
 - The app works offline.
 - The app has no telemetry, analytics or tracking.
-- The app makes no network connections. The window loads its interface from a local server on your own computer (127.0.0.1). A content security policy blocks all other network requests.
+- The app makes one network connection, and only when you ask. When you select the version number, the app asks GitHub (api.github.com) for the latest release. It sends nothing else and nothing is downloaded. The app does not keep the answer.
+- The window loads its interface from a local server on your own computer (127.0.0.1). A content security policy blocks all network requests from the window.
 - Images and slide folders are saved only where you select.
 - The app reads a text file only when you select **Open text file**. It does not change the file.
 - The app reads a picture only when you select **Choose picture**. It does not change the file. A small copy of the picture stays with your saved work in the `Quotical Data` folder.

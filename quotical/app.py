@@ -4,12 +4,14 @@ import argparse
 import base64
 import binascii
 import sys
+import webbrowser
 from pathlib import Path
 
 import webview
 
 from quotical._version import __version__
 from quotical.storage import Storage, new_folder, safe_filename, safe_folder_name
+from quotical.update_check import RELEASES_URL, UpdateCheckError, check_for_updates
 
 WEB_DIR = Path(__file__).parent / "web"
 # macOS ignores this and takes the window icon from the app bundle.
@@ -95,12 +97,30 @@ class Api:
         self._window = None
         # The folder the user chose for the current set of slides. Slides are written only here.
         self._export_folder = None
+        # The release page from the last update check. It is kept in memory only.
+        self._release_url = RELEASES_URL
 
     def attach(self, window) -> None:
         self._window = window
 
     def get_version(self):
         return __version__
+
+    def check_for_updates(self):
+        """Ask GitHub for the latest release. Runs only when the user selects the version number.
+
+        Returns the result, or {"error": message} when the check fails.
+        """
+        try:
+            result = check_for_updates(__version__)
+        except UpdateCheckError as error:
+            return {"error": str(error)}
+        self._release_url = result["url"]
+        return result
+
+    def open_release_page(self):
+        """Open the release page from the last check in the browser. The user downloads it there."""
+        webbrowser.open(self._release_url)
 
     def list_styles(self, kind="single"):
         return self._storage.list_styles(kind)

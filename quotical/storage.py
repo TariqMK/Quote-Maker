@@ -12,7 +12,11 @@ DATA_FOLDER_NAME = "Quotical Data"
 # The folder's name before the app was renamed. An old folder beside the app is renamed on first run.
 OLD_DATA_FOLDER_NAME = "Quote-Maker Data"
 # Each mode keeps its saved styles in its own file, because the kinds of style differ.
-STYLE_FILES = {"single": "styles.json", "carousel": "carousel-styles.json", "post": "post-styles.json"}
+STYLE_FILES = {
+    "single": "styles.json",
+    "carousel": "carousel-styles.json",
+    "post": "post-styles.json",
+}
 
 
 def data_dir() -> Path:

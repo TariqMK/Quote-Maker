@@ -35,7 +35,7 @@ const FILL_CONTROLS = [
 
 const TEXTURE_CONTROLS = [
   { heading: "Texture" },
-  { path: "texture.type", label: "Texture", type: "select", options: [["none", "None"], ["grain", "Paper grain"], ["dots", "Dots"], ["lines", "Ruled lines"], ["grid", "Grid"]] },
+  { path: "texture.type", label: "Texture", type: "select", options: [["none", "None"], ["grain", "Paper grain"], ["page", "Book page"], ["dots", "Dots"], ["lines", "Ruled lines"], ["grid", "Grid"]] },
   { path: "texture.opacity", label: "Strength", type: "range", min: 0.02, max: 0.6, step: 0.01, when: (s) => s.texture.type !== "none" },
   { path: "texture.color", label: "Colour", type: "color", when: (s) => !["none", "grain"].includes(s.texture.type) },
 ];
@@ -69,6 +69,7 @@ export const CONTROL_GROUPS = [
         options: [["italic", "Italic"], ["bold", "Bold"], ["color", "Colour"]],
       },
       { path: "quote.emphasisColor", label: "*Stars* colour", type: "color", when: (s) => s.quote.emphasis === "color" },
+      { path: "quote.band", label: "Highlight every line", type: "optionalColor", fallback: "#d8dd3f", toggleLabel: "Highlight every line" },
       { heading: "Text shadow" },
       { path: "quote.shadowBlur", label: "Blur", type: "range", min: 0, max: 80, step: 1 },
       { path: "quote.shadowY", label: "Offset", type: "range", min: -20, max: 40, step: 1 },
@@ -244,7 +245,6 @@ export const POST_CONTROL_GROUPS = [
       { heading: "Details" },
       { path: "muted", label: "Handle and icons", type: "color" },
       { path: "badge", label: "Verified badge", type: "color" },
-      { path: "actions", label: "Action icons", type: "toggle", when: (s) => s.kind !== "photo" },
       { heading: "Picture" },
       { path: "avatar.shape", label: "Shape", type: "select", options: [["circle", "Circle"], ["rounded", "Rounded square"]] },
       { path: "avatar.color", label: "Colour without picture", type: "color" },
@@ -260,7 +260,7 @@ export const POST_CONTROL_GROUPS = [
       { path: "card.shadow", label: "Shadow", type: "range", min: 0, max: 0.6, step: 0.01 },
       { path: "card.borderWidth", label: "Border", type: "range", min: 0, max: 8, step: 0.5 },
       { path: "card.border", label: "Border colour", type: "color", when: (s) => s.card.borderWidth > 0 },
-      { path: "divider", label: "Divider colour", type: "color", when: (s) => ["short", "work"].includes(s.kind) && s.actions },
+      { path: "divider", label: "Divider colour", type: "color", when: (s) => ["short", "work"].includes(s.kind) },
       { heading: "Photo square", when: (s) => s.kind === "photo" },
       { path: "media.type", label: "Fill", type: "select", options: [["solid", "Solid"], ["linear", "Linear gradient"], ["radial", "Radial gradient"]], when: (s) => s.kind === "photo" },
       { path: "media.color1", label: "Colour 1", type: "color", when: (s) => s.kind === "photo" },
@@ -398,13 +398,13 @@ function buildControl(control, style, onChange) {
   } else if (control.type === "color") {
     row.append(buildColor(value, (next) => change(next)).wrap);
   } else if (control.type === "optionalColor") {
-    const fallback = style.background.color2;
+    const fallback = control.fallback ?? style.background.color2;
     const { wrap, swatch, hex } = buildColor(value || fallback, (next) => change(next));
     wrap.classList.add("optional");
     const box = document.createElement("input");
     box.type = "checkbox";
     box.checked = !!value;
-    box.setAttribute("aria-label", "Use a third colour");
+    box.setAttribute("aria-label", control.toggleLabel ?? "Use a third colour");
     swatch.disabled = hex.disabled = !value;
     box.addEventListener("change", () => change(box.checked ? swatch.value : "", true));
     wrap.prepend(box);

@@ -40,6 +40,17 @@ export async function getVersion() {
   return desktop ? desktop.get_version() : "0.0.0.dev0";
 }
 
+// Asks GitHub for the latest release, through Python. Only the desktop app can do this, because
+// the window itself is not allowed any network access.
+export async function checkForUpdates() {
+  return desktop ? desktop.check_for_updates() : { error: "The update check works in the desktop app only." };
+}
+
+export async function openReleasePage() {
+  if (desktop) return desktop.open_release_page();
+  return null;
+}
+
 export async function listStyles(kind = "single") {
   return desktop ? desktop.list_styles(kind) : readLocal(STYLES_KEYS[kind], []);
 }

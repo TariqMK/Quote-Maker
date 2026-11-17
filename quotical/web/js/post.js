@@ -13,6 +13,7 @@ import {
   paintBands,
   paintTexture,
   setSpacing,
+  textureFonts,
 } from "./paint.js";
 import { POST_KINDS } from "./post-presets.js";
 import { cleanArticle, cleanLine, isRtl, parseArticle, stripHighlights } from "./text.js";
@@ -70,7 +71,8 @@ function fitLine(ctx, text, maxWidth) {
 }
 
 // Measures and places every part of the post. All positions are in canvas pixels.
-export function layoutPost(ctx, { width, height, name = "", handle = "", date = "", text = "", verified = false, style }) {
+// actions: false leaves out the row of action icons (like, reply, share and similar).
+export function layoutPost(ctx, { width, height, name = "", handle = "", date = "", text = "", verified = false, actions = true, style }) {
   const u = Math.min(width, height) / 1080;
   const kind = KINDS.has(style.kind) ? style.kind : "short";
   const margin = style.layout.margin * u;
@@ -174,7 +176,7 @@ export function layoutPost(ctx, { width, height, name = "", handle = "", date = 
 
     const headerGap = (work ? 30 : 34) * u;
     const dateH = !work && shown.date ? 34 * u + m * 1.3 : 0;
-    const actionsH = style.actions ? (work ? 28 + 22 : 30 + 30) * u + icon : 0;
+    const actionsH = actions ? (work ? 28 + 22 : 30 + 30) * u + icon : 0;
     const body = fitBody(innerW, maxCardH - pad * 2 - headerH - headerGap - dateH - actionsH);
     if (!body.empty) {
       y += headerGap;
@@ -186,7 +188,7 @@ export function layoutPost(ctx, { width, height, name = "", handle = "", date = 
       placeMuted(shown.date, innerX, y + m * 0.98, innerW);
       y += m * 1.3;
     }
-    if (style.actions) {
+    if (actions) {
       y += (work ? 28 : 30) * u;
       out.dividers.push({ x: innerX, y, w: innerW });
       y += (work ? 22 : 30) * u;
@@ -217,14 +219,14 @@ export function layoutPost(ctx, { width, height, name = "", handle = "", date = 
     placeMuted(rest, nameEnd + 12 * u, nameY, colX + lineW - nameEnd - 12 * u, n * 0.94);
     dotsAt(nameY - n * 0.32);
     const headerH = n * 1.3 + 8 * u;
-    const actionsH = style.actions ? 28 * u + icon : 0;
+    const actionsH = actions ? 28 * u + icon : 0;
     const body = fitBody(colW, maxCardH - pad * 2 - headerH - actionsH);
     let column = y + headerH;
     if (!body.empty) {
       out.body = { ...body, x: colX, y: column, w: colW, align: body.rtl ? "right" : "left" };
       column += body.fitted.height;
     }
-    if (style.actions) {
+    if (actions) {
       column += 28 * u;
       iconRow(ACTIONS.thread, column, icon, (i) => colX + i * (icon + 30 * u));
       column += icon;
@@ -250,7 +252,8 @@ export function layoutPost(ctx, { width, height, name = "", handle = "", date = 
     y += ringSize + pad * 0.8;
 
     const rowIcon = icon * 1.1;
-    const footerH = 26 * u + rowIcon + (shown.date ? 18 * u + m * 1.3 : 0) + pad;
+    const dateGap = (actions ? 18 : 26) * u;
+    const footerH = (actions ? 26 * u + rowIcon : 0) + (shown.date ? dateGap + m * 1.3 : 0) + pad;
     const mediaH = Math.max(80 * u, Math.min(cardW, maxCardH - y - footerH));
     out.media = { x: cardX, y, w: cardW, h: mediaH };
     const inset = Math.max(48 * u, cardW * 0.09);
@@ -258,13 +261,16 @@ export function layoutPost(ctx, { width, height, name = "", handle = "", date = 
     if (!body.empty) {
       out.body = { ...body, x: cardX + inset, y: y + (mediaH - body.fitted.height) / 2, w: cardW - inset * 2, align: "center" };
     }
-    y += mediaH + 26 * u;
-    const gap = 30 * u;
-    iconRow(["heart", "comment", "send"], y, rowIcon, (i) => innerX + i * (rowIcon + gap));
-    out.icons.push({ name: "bookmark", x: innerX + innerW - rowIcon, y, size: rowIcon });
-    y += rowIcon;
+    y += mediaH;
+    if (actions) {
+      y += 26 * u;
+      const gap = 30 * u;
+      iconRow(["heart", "comment", "send"], y, rowIcon, (i) => innerX + i * (rowIcon + gap));
+      out.icons.push({ name: "bookmark", x: innerX + innerW - rowIcon, y, size: rowIcon });
+      y += rowIcon;
+    }
     if (shown.date) {
-      y += 18 * u;
+      y += dateGap;
       placeMuted(shown.date, innerX, y + m * 0.98, innerW);
       y += m * 1.3;
     }
@@ -470,6 +476,7 @@ export async function ensurePostFonts(style) {
     fontString(style.profile.font, style.profile.weight, false, 40),
     fontString(style.profile.font, 400, false, 40),
     fontString(style.profile.font, 600, false, 40),
+    ...textureFonts(style.texture),
   ];
   await Promise.all(needed.map((font) => document.fonts.load(font, sample).catch(() => null)));
 }

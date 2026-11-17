@@ -279,7 +279,7 @@ def capture(browser, url, scheme):
             page.fill("#post-handle", view["handle"])
             page.fill("#post-date", view["date"])
             page.fill("#post-text", view["text"])
-            page.evaluate("document.getElementById('post-text').blur()")
+            page.evaluate("document.getElementById('post-date').blur()")
         else:
             page.fill("#quote", view["quote"])
             page.fill("#author", view["author"])
@@ -289,8 +289,12 @@ def capture(browser, url, scheme):
         if "filter" in view:
             page.locator(".filter", has_text=view["filter"]).click()
         page.click(f"#{view['tab']}")
-        # Clicking a style can scroll the gallery, which would hide the filters.
-        page.evaluate("document.getElementById('pane-styles').scrollTop = 0")
+        # Clicking a style can scroll the gallery, which would hide the filters. Clicking a size
+        # can scroll the text panel, which would hide the first fields.
+        page.evaluate(
+            "(() => { document.getElementById('pane-styles').scrollTop = 0;"
+            " document.querySelector('.panel.words').scrollTop = 0; })()"
+        )
         # Wait for fonts and every visible thumbnail, then for the preview to redraw.
         wait_until(page, "document.fonts.status === 'loaded'")
         wait_until(

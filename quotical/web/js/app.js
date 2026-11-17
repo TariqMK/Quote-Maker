@@ -139,6 +139,7 @@ const MODES = {
       date: "9:41 AM · Nov 17, 2026",
       text: SAMPLE_POST,
       verified: true,
+      actions: true,
       avatar: "",
       sizeId: "square",
       format: "png",
@@ -158,7 +159,7 @@ const SAVED_KEYS = {
     "styleId", "style", "edited", "slide",
   ],
   post: [
-    "name", "handle", "date", "text", "verified", "avatar", "sizeId", "scale", "format", "quality",
+    "name", "handle", "date", "text", "verified", "actions", "avatar", "sizeId", "scale", "format", "quality",
     "styleId", "style", "edited",
   ],
 };
@@ -264,8 +265,8 @@ async function loadAvatar(src) {
 }
 
 function postInput() {
-  const { name, handle, date, text, verified, style } = state();
-  return { name, handle, date, text, verified, style, avatar: avatarImage.image };
+  const { name, handle, date, text, verified, actions, style } = state();
+  return { name, handle, date, text, verified, actions, style, avatar: avatarImage.image };
 }
 
 function drawPost() {
@@ -955,6 +956,72 @@ async function deleteCustom() {
   setStatus(`Deleted style ${style.name}`);
 }
 
+// Check for updates: runs only when the user selects the version number.
+
+const UPDATE_TEXT = {
+  newer: (r) => [`Quotical ${r.latest} is available.`, `You have ${r.current}. Open the release page to download the new version.`],
+  current: (r) => ["Quotical is up to date.", `${r.current} is the latest release.`],
+  dev: (r) => ["This is a development build.", `You are running ${r.current}. The latest release is ${r.latest}.`],
+  branch: (r) => ["This is a test build.", `You are running ${r.current}. The latest release is ${r.latest}.`],
+};
+
+// Puts the version button beside the wordmark. The button sits at the end of the page, so it
+// comes after the main content in the tab order.
+function placeVersion() {
+  const mark = $("wordmark").getBoundingClientRect();
+  const button = $("version");
+  button.style.left = `${Math.round(mark.right + 6)}px`;
+  button.style.top = `${Math.round(mark.top + (mark.height - button.offsetHeight) / 2 + 2)}px`;
+}
+
+function setVersionLabel(version) {
+  const button = $("version");
+  button.textContent = version;
+  button.setAttribute("aria-label", `Version ${version}`);
+  placeVersion();
+}
+
+async function checkForUpdates() {
+  const button = $("version");
+  if (button.disabled) return;
+  const version = button.textContent;
+  button.disabled = true;
+  button.textContent = "checking…";
+  placeVersion();
+  let result;
+  try {
+    result = await bridge.checkForUpdates();
+  } catch (error) {
+    result = { error: `Can't reach GitHub: ${error.message ?? error}. Check the internet connection.` };
+  } finally {
+    button.disabled = false;
+    setVersionLabel(version);
+  }
+  showUpdateResult(result);
+}
+
+function showUpdateResult(result) {
+  const text = result.error ? [result.error, ""] : UPDATE_TEXT[result.kind]?.(result);
+  const [headline, detail] = text ?? ["GitHub sent an answer Quotical can't read. Try again later.", ""];
+  $("update-headline").textContent = headline;
+  $("update-detail").textContent = detail;
+  $("update-detail").hidden = !detail;
+  const offer = !result.error && result.kind !== "current";
+  $("update-open").hidden = !offer;
+  $("update-notes").hidden = !(offer && result.notes);
+  $("update-notes").open = false;
+  // The notes are Markdown. Shown as plain text, so the bold marks are removed.
+  $("update-notes-text").textContent = (result.notes ?? "").replace(/\*\*(.+?)\*\*/g, "$1");
+  if (result.kind === "newer") {
+    $("version").classList.add("has-update");
+    $("version").title = `${result.latest} is available. Click for details.`;
+  }
+  const dialog = $("update-dialog");
+  dialog.showModal();
+  // Open release page is the default button when it is offered.
+  (offer ? $("update-open") : dialog.querySelector("[value=close]")).focus();
+}
+
 // Modes
 
 function setMode(next) {
@@ -1018,7 +1085,17 @@ function bindEvents() {
     work.post.verified = event.target.checked;
     changed();
   });
+  $("post-actions").addEventListener("change", (event) => {
+    work.post.actions = event.target.checked;
+    changed();
+  });
   $("choose-avatar").addEventListener("click", chooseAvatar);
+  $("version").addEventListener("click", checkForUpdates);
+  $("update-form").addEventListener("submit", (event) => {
+    if (event.submitter?.value === "open") bridge.openReleasePage();
+  });
+  new ResizeObserver(placeVersion).observe($("wordmark"));
+  window.addEventListener("resize", placeVersion);
   $("remove-avatar").addEventListener("click", removeAvatar);
   document.querySelectorAll("#modes [data-mode]").forEach((button) => {
     button.addEventListener("click", () => setMode(button.dataset.mode));
@@ -1095,6 +1172,7 @@ function renderAll() {
   }
   $("keep-breaks").checked = work.carousel.keepLineBreaks;
   $("post-verified").checked = work.post.verified;
+  $("post-actions").checked = work.post.actions;
   renderAvatar();
   renderMode();
   renderSizes();
@@ -1116,7 +1194,8 @@ async function start() {
   showTab("styles");
   renderAll(); // Show the window content straight away, then restore saved work.
   await bridge.connect();
-  $("version").textContent = `v${await bridge.getVersion()}`;
+  setVersionLabel(`v${await bridge.getVersion()}`);
+  document.fonts.ready.then(placeVersion);
   customStyles.single = await bridge.listStyles("single");
   customStyles.carousel = await bridge.listStyles("carousel");
   customStyles.post = await bridge.listStyles("post");

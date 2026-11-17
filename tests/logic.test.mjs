@@ -7,15 +7,7 @@ import { FONTS } from "../quotical/web/js/fonts.js";
 import { breakLines, fitText, layoutAt, readableInk } from "../quotical/web/js/layout.js";
 import { DEFAULT_STYLE, PRESETS, withDefaults } from "../quotical/web/js/presets.js";
 import { buildSavedState, readSavedState } from "../quotical/web/js/state.js";
-import {
-  HIGHLIGHTS,
-  applyHighlight,
-  cleanQuote,
-  isRtl,
-  parseParagraphs,
-  stripHighlights,
-  suggestFilename,
-} from "../quotical/web/js/text.js";
+import { HIGHLIGHTS, applyHighlight, cleanQuote, highlightAll, isRtl, parseParagraphs, stripHighlights, suggestFilename } from "../quotical/web/js/text.js";
 
 const partsOf = (text) =>
   parseParagraphs(text).flatMap((p) => p.words.map((w) => w.parts.map((x) => [x.text, x.hl])));
@@ -275,4 +267,12 @@ test("damaged or unknown saved state falls back to defaults", () => {
   assert.deepEqual(readSavedState(null), { mode: "single", single: {}, carousel: {}, post: {} });
   assert.deepEqual(readSavedState([1]), { mode: "single", single: {}, carousel: {}, post: {} });
   assert.equal(readSavedState({ mode: "nope", single: {} }).mode, "single");
+});
+
+test("highlight every line colours each word and keeps a word's own highlight", () => {
+  const paragraphs = highlightAll(parseParagraphs("Keep the [pink: first draft] close"), "#d3d73c");
+  const colours = paragraphs[0].words.map((word) => word.parts.map((part) => part.hl).join());
+  assert.deepEqual(colours, ["#d3d73c", "#d3d73c", HIGHLIGHTS.pink, HIGHLIGHTS.pink, "#d3d73c"]);
+  const plain = highlightAll(parseParagraphs("No colour"), "");
+  assert.ok(plain[0].words.every((word) => word.parts.every((part) => part.hl === null)));
 });

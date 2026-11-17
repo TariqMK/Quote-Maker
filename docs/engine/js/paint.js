@@ -106,17 +106,79 @@ function noiseTile() {
 }
 let cachedNoise = null;
 
+function paintGrain(ctx, w, h, u) {
+  cachedNoise ??= noiseTile();
+  ctx.globalCompositeOperation = "overlay";
+  const pattern = ctx.createPattern(cachedNoise, "repeat");
+  pattern.setTransform(new DOMMatrix().scale(Math.max(1, u)));
+  ctx.fillStyle = pattern;
+  ctx.fillRect(0, 0, w, h);
+  ctx.globalCompositeOperation = "source-over";
+}
+
+// The font of the text that shows through a book page. Loaded with the style's other fonts.
+const SHOW_THROUGH_FONT = "EB Garamond";
+const SHOW_THROUGH_WORDS = (
+  "the and of a to in that it was he for on as with his they at be this from had by not but " +
+  "what all were when we there can an your which their said if do will each about how up out " +
+  "them then she many some so these would other into has more her two like him see time could " +
+  "no make than first been its who now people my made over did down only way find use may water " +
+  "long little very after words called just where most know get through back much before go good"
+).split(" ");
+
+// The fonts a texture needs, so a style can load them before it draws.
+export function textureFonts(texture) {
+  return texture.type === "page" ? [fontString(SHOW_THROUGH_FONT, 400, false, 40)] : [];
+}
+
+// Faint, mirrored lines of text, as when the next page of a book shows through the paper.
+// Drawn at a third of the size and scaled up, so the letters are soft. A fixed seed keeps it
+// the same in the preview and the saved file.
+function paintShowThrough(ctx, w, h, u, color) {
+  const scale = 1 / 3;
+  const layer = document.createElement("canvas");
+  layer.width = Math.max(1, Math.round(w * scale));
+  layer.height = Math.max(1, Math.round(h * scale));
+  const page = layer.getContext("2d");
+  page.scale(scale, scale);
+  // The back of the page is mirrored left to right.
+  page.translate(w, 0);
+  page.scale(-1, 1);
+  page.fillStyle = color;
+  const size = 30 * u;
+  const step = size * 1.45;
+  const left = 90 * u;
+  const right = w - 90 * u;
+  page.font = fontString(SHOW_THROUGH_FONT, 400, false, size);
+  let seed = 20260817;
+  const next = () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+  for (let y = 80 * u + size; y < h - 60 * u; y += step) {
+    // A short line now and then, like the end of a paragraph.
+    const end = next() < 0.12 ? left + (right - left) * (0.3 + next() * 0.5) : right;
+    let line = "";
+    while (page.measureText(line).width < end - left) {
+      line += `${SHOW_THROUGH_WORDS[Math.floor(next() * SHOW_THROUGH_WORDS.length)]} `;
+    }
+    page.fillText(line.trim(), left, y, end - left);
+  }
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(layer, 0, 0, w, h);
+}
+
 export function paintTexture(ctx, w, h, u, texture) {
   if (texture.type === "none") return;
   ctx.save();
   ctx.globalAlpha = texture.opacity;
   if (texture.type === "grain") {
-    cachedNoise ??= noiseTile();
-    ctx.globalCompositeOperation = "overlay";
-    const pattern = ctx.createPattern(cachedNoise, "repeat");
-    pattern.setTransform(new DOMMatrix().scale(Math.max(1, u)));
-    ctx.fillStyle = pattern;
-    ctx.fillRect(0, 0, w, h);
+    paintGrain(ctx, w, h, u);
+  } else if (texture.type === "page") {
+    // Paper grain at the chosen strength, and the text behind much fainter.
+    paintGrain(ctx, w, h, u);
+    ctx.globalAlpha = Math.min(1, texture.opacity * 0.16);
+    paintShowThrough(ctx, w, h, u, texture.color);
   } else if (texture.type === "dots") {
     ctx.fillStyle = texture.color;
     const step = 22 * u;

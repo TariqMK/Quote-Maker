@@ -193,6 +193,18 @@ export function parseParagraphs(text) {
   return paragraphs;
 }
 
+// Puts a highlight colour behind every word, as the style's "Highlight every line" does.
+// Words with their own highlight keep their colour. An empty colour changes nothing.
+export function highlightAll(paragraphs, color) {
+  if (!color) return paragraphs;
+  for (const paragraph of paragraphs) {
+    for (const word of paragraph.words) {
+      for (const part of word.parts) part.hl ??= color;
+    }
+  }
+  return paragraphs;
+}
+
 // True when the text starts with a right-to-left letter (Arabic, Hebrew and similar).
 export function isRtl(text) {
   const strong = text.match(/[A-Za-zÀ-ɏͰ-῿֐-ࣿיִ-ﻼ]/);

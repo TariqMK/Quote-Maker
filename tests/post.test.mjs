@@ -98,11 +98,18 @@ test("empty fields leave out their parts", () => {
   assert.ok(result.card.h > 0);
 });
 
-test("action icons can be turned off", () => {
-  const style = withPostDefaults({ actions: false });
-  const result = layout(style, SHORT);
-  assert.equal(result.icons.length, 0);
-  assert.equal(result.dividers.length, 0);
+test("action icons can be turned off in every layout, which leaves more room for text", () => {
+  for (const [kind] of POST_KINDS) {
+    const style = withPostDefaults({ kind });
+    const shown = layout(style, LONG);
+    const hidden = layout(style, LONG, undefined, { actions: false });
+    assert.ok(shown.icons.some((icon) => icon.name !== "globe"), `${kind} shows icons by default`);
+    assert.deepEqual(hidden.icons.filter((icon) => icon.name !== "globe"), [], `${kind} hides the icons`);
+    assert.equal(hidden.dividers.length, 0, `${kind} hides the divider`);
+    assert.ok(hidden.body.fitted.size >= shown.body.fitted.size, `${kind} text is not smaller without icons`);
+    const { card } = hidden;
+    assert.ok(card.y >= -0.01 && card.y + card.h <= 1080.01, `${kind} card fits without icons`);
+  }
 });
 
 test("initials come from the first two words of the name", () => {

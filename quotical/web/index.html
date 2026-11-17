@@ -14,8 +14,7 @@
   <body>
     <header class="topbar">
       <div class="title">
-        <h1 class="wordmark">Quotical</h1>
-        <span class="version" id="version"></span>
+        <h1 class="wordmark" id="wordmark">Quotical</h1>
       </div>
       <div class="segmented mode-switch" id="modes" role="radiogroup" aria-label="Mode">
         <button type="button" role="radio" data-mode="single">Single image</button>
@@ -85,6 +84,10 @@
           <label class="check">
             <input id="post-verified" type="checkbox" />
             <span>Verified badge</span>
+          </label>
+          <label class="check">
+            <input id="post-actions" type="checkbox" />
+            <span>Action icons <span class="hint">like, reply and share</span></span>
           </label>
           <label class="field">
             <span class="field-label">Post</span>
@@ -200,6 +203,27 @@
         </div>
       </form>
     </dialog>
+
+    <dialog id="update-dialog" aria-labelledby="update-title">
+      <form method="dialog" id="update-form">
+        <h2 id="update-title">Check for updates</h2>
+        <p class="update-headline" id="update-headline"></p>
+        <p id="update-detail"></p>
+        <details class="update-notes" id="update-notes" hidden>
+          <summary>Release notes</summary>
+          <div class="update-notes-text" id="update-notes-text"></div>
+        </details>
+        <div class="dialog-actions">
+          <button class="button" value="close" type="submit">Close</button>
+          <button class="button primary" id="update-open" value="open" type="submit" hidden>Open release page</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- The version is the Check for updates button. It comes after the main content in the tab
+         order, so it never takes the first focus, and app.js places it beside the wordmark. -->
+    <button class="version" id="version" type="button" title="Check for updates" aria-describedby="version-help"></button>
+    <span id="version-help" hidden>Check GitHub for a newer release.</span>
 
     <script type="module" src="js/app.js"></script>
   </body>

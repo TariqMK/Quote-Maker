@@ -30,6 +30,9 @@ export const DEFAULT_STYLE = {
     shadowColor: "#000000",
     emphasis: "italic",
     emphasisColor: "#d9482b",
+    // A highlight colour behind every line of the quote, like a highlighter pen. "" for none.
+    // Words with their own highlight keep it.
+    band: "",
   },
   mark: { type: "none", font: "Fraunces", color: "#d9482b", size: 200, opacity: 1 },
   rule: { type: "none", color: "#1c1a17", width: 80, thickness: 3 },
@@ -105,6 +108,15 @@ export const PRESETS = [
     author: { font: "EB Garamond", weight: 500, size: 28, uppercase: true, letterSpacing: 0.14, dash: false },
     source: { font: "EB Garamond", italic: true, size: 32 },
     layout: { margin: 130 },
+  })),
+  // A photographed book page with every line marked by a highlighter pen.
+  preset("Highlighted page", "Classic", tone("#24221e", "#55524b", {
+    background: { type: "radial", color1: "#d5d0c8", color2: "#c7c1b9", color3: "#aba59c" },
+    texture: { type: "page", opacity: 0.34, color: "#2b2925" },
+    layout: { align: "left", margin: 250 },
+    quote: { font: "EB Garamond", size: 66, lineHeight: 1.26, balance: false, band: "#d3d73c" },
+    author: { font: "EB Garamond", size: 30, letterSpacing: 0, gap: 40 },
+    source: { font: "EB Garamond", italic: true, size: 28 },
   })),
   preset("Engraved", "Classic", tone("#22303a", "#5a6a75", {
     background: { color1: "#f4f1ea" },

@@ -90,17 +90,80 @@ body {
   gap: 8px;
 }
 
+/* The version is the Check for updates button. It looks like a label until hovered. */
 .version {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
   color: var(--text-2);
+  font: inherit;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color 120ms var(--ease), color 120ms var(--ease);
 }
 
+.version:hover:not(:disabled) {
+  background: var(--control);
+  color: var(--text);
+}
+
+.version:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.version:disabled {
+  cursor: default;
+}
+
+/* A newer release was found. The mark lasts until the app closes. */
+.version.has-update {
+  color: var(--accent);
+}
+
+#update-dialog {
+  width: 400px;
+}
+
+dialog p.update-headline {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.update-notes {
+  margin-top: 4px;
+  color: var(--text-2);
+}
+
+.update-notes summary {
+  cursor: pointer;
+}
+
+.update-notes-text {
+  max-height: 200px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* The same type as the banner, social card and website: Instrument Sans Semibold. */
 .wordmark {
   margin: 0;
-  font-family: "Instrument Serif", Georgia, serif;
-  font-size: 24px;
-  font-weight: 400;
+  font-family: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .topbar-actions {

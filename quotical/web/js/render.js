@@ -4,6 +4,7 @@
 import {
   drawRuns,
   emphasisFont,
+  textureFonts,
   fontString,
   measureLine,
   measureParagraphs,
@@ -15,7 +16,7 @@ import {
   setSpacing,
 } from "./paint.js";
 import { fitText } from "./layout.js";
-import { cleanLine, cleanQuote, isRtl, parseParagraphs, stripHighlights } from "./text.js";
+import { cleanLine, cleanQuote, highlightAll, isRtl, parseParagraphs, stripHighlights } from "./text.js";
 
 const MARK_GLYPH = "“";
 const PARAGRAPH_GAP = 0.6;
@@ -31,6 +32,7 @@ export async function ensureFonts(style) {
     fontString(style.mark.font, 400, false, 40),
     fontString(style.author.font, style.author.weight, style.author.italic, 40),
     fontString(style.source.font, style.source.weight, style.source.italic, 40),
+    ...textureFonts(style.texture),
   ];
   await Promise.all(needed.map((font) => document.fonts.load(font, sample).catch(() => null)));
 }
@@ -104,6 +106,7 @@ export function renderQuote(ctx, { width, height, quote, author, source, style }
 
   const paragraphs = parseParagraphs(text);
   if (mark.type === "inline") wrapInMarks(paragraphs);
+  highlightAll(paragraphs, q.band);
   const rtl = isRtl(stripHighlights(text));
   const align = rtl && box.align === "left" ? "right" : box.align;
   const space100 = measureParagraphs(ctx, paragraphs, q);

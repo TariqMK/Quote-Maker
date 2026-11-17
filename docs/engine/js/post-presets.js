@@ -29,7 +29,6 @@ export const DEFAULT_POST_STYLE = {
   divider: "#e6ecf0",
   badge: "#1d9bf0",
   avatar: { shape: "circle", color: "#1d9bf0" },
-  actions: true,
   // The coloured square of a photo post. The post text on it uses body.color.
   media: { type: "linear", color1: "#ff9a62", color2: "#d6457b", color3: "", angle: 135 },
 };

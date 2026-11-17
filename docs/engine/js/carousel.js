@@ -13,6 +13,7 @@ import {
   paintFrame,
   paintTexture,
   setSpacing,
+  textureFonts,
 } from "./paint.js";
 import { cleanArticle, cleanLine, isRtl, parseArticle, splitSlides, stripHighlights } from "./text.js";
 
@@ -272,6 +273,7 @@ export async function ensureCarouselFonts(style) {
     lookFont(spec(style.subtitle), "", 40),
     ...["", "b", "i", "bi"].map((look) => lookFont(spec(style.body), look, 40)),
     fontString(style.pageNumber.font, 400, false, 40),
+    ...textureFonts(style.texture),
   ];
   await Promise.all(needed.map((font) => document.fonts.load(font, sample).catch(() => null)));
 }
