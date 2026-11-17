@@ -211,3 +211,111 @@ export function suggestFilename(quote, author) {
   const by = cleanLine(author).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "");
   return [words || "quote", by].filter(Boolean).join("--").slice(0, 80);
 }
+
+// Article text for a carousel
+
+// A line that holds only [slide] starts a new slide.
+const SLIDE_BREAK = /^[^\S\n]*\[slide\][^\S\n]*$/im;
+export const SLIDE_MARK = "[slide]";
+
+// Prepares pasted article text. Unlike a quote, quote marks around the whole text stay.
+export function cleanArticle(raw) {
+  return smartenPunctuation(
+    String(raw ?? "")
+      .replace(/\r\n?/g, "\n")
+      .replace(/[^\S\n]+/g, " ")
+      .replace(/ ?\n ?/g, "\n")
+      .trim(),
+  );
+}
+
+// Splits cleaned article text at [slide] lines. Returns one text for each forced section.
+export function splitSlides(text) {
+  return text
+    .split(new RegExp(SLIDE_BREAK.source, "gim"))
+    .map((section) => section.trim());
+}
+
+// Finds the characters that switch bold (**) and italic (*) on and off. A star with no partner
+// stays as a literal character. Returns a Map from position to the number of stars it uses.
+function emphasisToggles(plain) {
+  const toggles = new Map();
+  const doubles = [];
+  for (let i = 0; i < plain.length - 1; i += 1) {
+    if (plain[i] === "*" && plain[i + 1] === "*") {
+      doubles.push(i);
+      i += 1;
+    }
+  }
+  // A pair of stars with no partner stays as two literal stars.
+  const unpaired = doubles.length % 2 ? doubles.pop() : -1;
+  doubles.forEach((i) => toggles.set(i, 2));
+  const singles = [];
+  for (let i = 0; i < plain.length; i += 1) {
+    if (toggles.has(i) || i === unpaired) i += 1;
+    else if (plain[i] === "*") singles.push(i);
+  }
+  if (singles.length % 2) singles.pop();
+  singles.forEach((i) => toggles.set(i, 1));
+  return toggles;
+}
+
+// Returns paragraphs of words, each word with {text, look, hl} parts. look is "", "b", "i" or
+// "bi". A blank line starts a new block and sets gap. Inside a block, single line breaks join
+// into one paragraph, unless keepLineBreaks is true: then each line is its own paragraph with
+// the same block number, so a stanza stays together.
+export function parseArticle(text, { keepLineBreaks = false } = {}) {
+  const paragraphs = [];
+  const blocks = text.split(/\n[^\S\n]*\n\s*/).map((b) => b.trim()).filter(Boolean);
+  blocks.forEach((rawBlock, block) => {
+    const joined = keepLineBreaks ? rawBlock : rawBlock.replace(/\n/g, " ");
+    const { plain, colors } = decodeHighlights(joined);
+    const toggles = emphasisToggles(plain);
+    let bold = false;
+    let italic = false;
+    let hl = null;
+    let words = [];
+    let parts = [];
+    let wordText = "";
+    const look = () => (bold ? "b" : "") + (italic ? "i" : "");
+    const endPart = () => {
+      if (wordText) parts.push({ text: wordText, look: look(), hl });
+      wordText = "";
+    };
+    const endWord = () => {
+      endPart();
+      if (parts.length) words.push({ parts, text: parts.map((p) => p.text).join("") });
+      parts = [];
+    };
+    const endParagraph = () => {
+      endWord();
+      if (words.length) {
+        const first = !paragraphs.some((p) => p.block === block);
+        paragraphs.push({ words, block, gap: first && paragraphs.length > 0 });
+      }
+      words = [];
+    };
+    for (let i = 0; i < plain.length; i += 1) {
+      const char = plain[i];
+      const stars = toggles.get(i);
+      if (stars) {
+        endPart();
+        if (stars === 2) bold = !bold;
+        else italic = !italic;
+        i += stars - 1;
+      } else if (char === "\n") {
+        endParagraph();
+      } else if (/\s/.test(char)) {
+        endWord();
+      } else {
+        if (colors[i] !== hl) {
+          endPart();
+          hl = colors[i];
+        }
+        wordText += char;
+      }
+    }
+    endParagraph();
+  });
+  return paragraphs;
+}

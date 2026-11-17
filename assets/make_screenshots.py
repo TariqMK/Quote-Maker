@@ -5,7 +5,9 @@ It captures only the page, in a clean browser profile, so no real settings or fi
 The page's network requests are blocked, except to the local server.
 The version label shows the newest vX.Y.Z git tag. The script fetches tags from the repository's
 own remote first, and carries on with the local tags if that fails.
-Needs Microsoft Edge. Run from any environment that has the brand tools:
+Uses Microsoft Edge, or Playwright's own Chromium when Edge is not installed
+(install it once with: python -m playwright install chromium).
+Run from any environment that has the brand tools:
     python -m pip install .[brand]
     python assets/make_screenshots.py
 """
@@ -110,18 +112,56 @@ SAMPLE_STYLES = [
     },
 ]
 
+# A made-up saved carousel style.
+SAMPLE_CAROUSEL_STYLES = [
+    {
+        "id": "custom-night-notes",
+        "name": "Night notes",
+        "background": {"color1": "#1b2430"},
+        "title": {"font": "Fraunces", "weight": 600, "color": "#f3efe6"},
+        "subtitle": {"font": "Inter", "color": "#9aa6b4"},
+        "body": {"font": "Inter", "color": "#dfe4ea", "size": 29, "lineHeight": 1.66},
+        "pageNumber": {"font": "Inter", "color": "#9aa6b4"},
+    },
+]
+
 # Stands in for the Python side, so nothing is read from or written to this computer.
 FAKE_API = """
 window.pywebview = { api: {
   get_version: async () => VERSION,
-  list_styles: async () => STYLES,
+  list_styles: async (kind) => (kind === "carousel" ? CAROUSEL_STYLES : STYLES),
   load_state: async () => ({}),
   save_state: async () => null,
   save_style: async (style) => style,
   delete_style: async () => true,
   save_image: async () => null,
+  choose_export_folder: async () => null,
+  save_export_image: async () => null,
+  open_text_file: async () => null,
 } };
-""".replace("VERSION", json.dumps(SHOWN_VERSION)).replace("STYLES", json.dumps(SAMPLE_STYLES))
+""".replace("VERSION", json.dumps(SHOWN_VERSION))
+FAKE_API = FAKE_API.replace("CAROUSEL_STYLES", json.dumps(SAMPLE_CAROUSEL_STYLES))
+FAKE_API = FAKE_API.replace("STYLES", json.dumps(SAMPLE_STYLES))
+
+SAMPLE_ARTICLE = """Most people who want to read more do not need more time. They need *fewer decisions* \
+between them and the next page.
+
+**Keep a book within reach.** On the table, in the bag, beside the bed. The book you can see is \
+the book you open.
+
+**Stop books you do not enjoy.** Finishing is not a duty. Put it down and start the next one.
+
+**Read a little, often.** Ten pages a day is [yellow: more than 3,000 pages a year]. That is a \
+dozen books.
+
+[slide]
+**Make it the default.** Read on the train instead of scrolling. Read for five minutes before \
+you sleep.
+
+**Talk about what you read.** Telling a friend about a chapter fixes it in your memory.
+
+**Keep a short list.** Write down every title you finish. The list grows faster than you expect.
+"""
 
 # Each view: file name, words, image size, style, right tab, and optional extra step.
 VIEWS = [
@@ -153,7 +193,20 @@ VIEWS = [
         "tab": "tab-styles",
         "filter": "My styles",
     },
+    {
+        "file": "carousel",
+        "mode": "carousel",
+        "title": "Six ways to read more books",
+        "subtitle": "Notes by Mara Ellison · 4 min read",
+        "text": SAMPLE_ARTICLE,
+        "size": "Portrait",
+        "style": "carousel-paper",
+        "tab": "tab-styles",
+    },
 ]
+
+# The width each mode draws its style thumbnails at, used to wait for them.
+THUMB_WIDTH = {"single": 400, "carousel": 320}
 
 
 class QuietHandler(SimpleHTTPRequestHandler):
@@ -194,9 +247,22 @@ def capture(browser, url, scheme):
         page.goto(f"{local}/index.html")
         wait_until(page, f"document.getElementById('version').textContent === 'v{SHOWN_VERSION}'")
         wait_until(page, "!!document.querySelector('[data-style-id=custom-harbour]')")
-        page.fill("#quote", view["quote"])
-        page.fill("#author", view["author"])
-        page.fill("#source", view["source"])
+        mode = view.get("mode", "single")
+        if mode == "carousel":
+            page.click("[data-mode=carousel]")
+            wait_until(page, "!!document.querySelector('[data-style-id=custom-night-notes]')")
+            page.fill("#carousel-title", view["title"])
+            page.fill("#carousel-subtitle", view["subtitle"])
+            page.fill("#article", view["text"])
+            # Show the start of the article, not the end where typing left the cursor.
+            page.evaluate(
+                "(() => { const a = document.getElementById('article');"
+                " a.setSelectionRange(0, 0); a.scrollTop = 0; a.blur(); })()"
+            )
+        else:
+            page.fill("#quote", view["quote"])
+            page.fill("#author", view["author"])
+            page.fill("#source", view["source"])
         page.locator(".size-option", has_text=view["size"]).click()
         page.locator(f'[data-style-id="{view["style"]}"]').click()
         if "filter" in view:
@@ -208,7 +274,7 @@ def capture(browser, url, scheme):
         wait_until(page, "document.fonts.status === 'loaded'")
         wait_until(
             page,
-            "[...document.querySelectorAll('.swatch canvas')].every((c) => c.width === 400)",
+            f"[...document.querySelectorAll('.swatch canvas')].every((c) => c.width === {THUMB_WIDTH[mode]})",
         )
         time.sleep(0.5)
         OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -220,13 +286,19 @@ def capture(browser, url, scheme):
 
 
 def main():
-    from playwright.sync_api import sync_playwright  # Imported here so tests need no browser tools.
+    # Imported here so tests need no browser tools.
+    from playwright.sync_api import Error as PlaywrightError
+    from playwright.sync_api import sync_playwright
 
     print(f"Showing version v{SHOWN_VERSION}")
     server = start_server()
     url = f"http://127.0.0.1:{server.server_address[1]}"
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(channel="msedge", headless=True)
+        try:
+            browser = playwright.chromium.launch(channel="msedge", headless=True)
+        except PlaywrightError:
+            print("Microsoft Edge is not installed. Using Playwright's Chromium.")
+            browser = playwright.chromium.launch(headless=True)
         for scheme in ("light", "dark"):
             capture(browser, url, scheme)
         browser.close()

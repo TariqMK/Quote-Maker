@@ -275,6 +275,42 @@ h1 {
   font-variant-numeric: tabular-nums;
 }
 
+/* Mode switch: the same segmented control as the app. */
+.segmented {
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  padding: 2px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+}
+
+.segmented button {
+  height: 26px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.segmented button[aria-checked="true"] {
+  background: var(--raised);
+  color: var(--text);
+  font-weight: 500;
+}
+
+.mode-switch {
+  width: 220px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
 .workspace {
   display: grid;
   grid-template-columns: 288px minmax(0, 1fr) 328px;
@@ -438,6 +474,85 @@ input::placeholder {
 .proof canvas {
   display: block;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* Carousel: slide thumbnails under the proof, with a step button at each end. */
+.slide-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  margin-top: -16px;
+}
+
+.step {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: background-color 150ms var(--ease);
+}
+
+.step:hover:not(:disabled) {
+  background: var(--raised);
+}
+
+.step:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.step svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.filmstrip {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.thumb {
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+
+.thumb canvas {
+  display: block;
+  height: 56px;
+  border-radius: 4px;
+  outline: 1px solid var(--line);
+  outline-offset: -1px;
+}
+
+.thumb[aria-current="true"] canvas {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.gallery.portrait .swatch canvas {
+  aspect-ratio: 4 / 5;
 }
 
 .proof-note {
@@ -894,6 +1009,23 @@ input::placeholder {
   /* The navigation keeps its Download button, so the window does not repeat it. */
   .topbar .button {
     display: none;
+  }
+
+  /* The mode switch needs the room, so the window's version label goes. */
+  .topbar .version {
+    display: none;
+  }
+
+  .wordmark {
+    white-space: nowrap;
+  }
+
+  .mode-switch {
+    width: auto;
+  }
+
+  .segmented button {
+    padding: 0 8px;
   }
 
   .meta > span:not(.meta-sep) {

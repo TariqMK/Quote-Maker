@@ -1,5 +1,7 @@
 // Runs the Quote-Maker product page: the working demo, the proof sheet and the download links.
 
+import { CAROUSEL_PRESETS, withCarouselDefaults } from "./engine/js/carousel-presets.js";
+import { ensureCarouselFonts, layoutCarousel, renderSlide } from "./engine/js/carousel.js";
 import { CATEGORIES, PRESETS, mergeDeep, withDefaults } from "./engine/js/presets.js";
 import { ensureFonts, renderQuote } from "./engine/js/render.js";
 import { HIGHLIGHTS, applyHighlight } from "./engine/js/text.js";
@@ -14,12 +16,26 @@ const SIZES = [
   { id: "landscape", name: "Landscape", width: 1200, height: 675 },
   { id: "story", name: "Story", width: 1080, height: 1920 },
 ];
+const CAROUSEL_SIZES = [
+  { id: "portrait", name: "Portrait", width: 1080, height: 1350 },
+  { id: "square", name: "Square", width: 1080, height: 1080 },
+  { id: "tall", name: "Tall", width: 1080, height: 1440 },
+];
 const THUMB = { quote: "Words *worth* keeping", author: "Author", size: 400, textScale: 1.7 };
+const CAROUSEL_THUMB = {
+  width: 320,
+  title: "Words worth keeping",
+  text: "Clear writing is a set of *small habits* that anyone can learn, one paragraph at a time.",
+};
+const FILM_HEIGHT = 112; // Slide thumbnails are drawn at 2x their 56 px display height.
 const WALL = { width: 432, height: 540 };
 const SIZE_PROOF_SCALE = 0.3;
 const EMPHASIS_SAMPLE = "Start with the *best* line";
 const HIGHLIGHT_SAMPLE = "Start with the [yellow: best] line";
-const HIGHLIGHT_HINT = "Select words in Quote, then select a colour";
+const HIGHLIGHT_HINTS = {
+  single: "Select words in Quote, then select a colour",
+  carousel: "Select words, then select a colour",
+};
 const EMPHASIS_KINDS = [
   { name: "Italic", overrides: { emphasis: "italic" } },
   { name: "Bold", overrides: { emphasis: "bold" } },
@@ -38,11 +54,43 @@ const state = {
   sizeId: "portrait",
   styleId: "oxblood",
   filter: "All",
+  mode: "single",
 };
+
+// The carousel sample matches the README screenshot.
+const carousel = {
+  title: "Six ways to read more books",
+  subtitle: "Notes by Mara Ellison · 4 min read",
+  text: `Most people who want to read more do not need more time. They need *fewer decisions* between them and the next page.
+
+**Keep a book within reach.** On the table, in the bag, beside the bed. The book you can see is the book you open.
+
+**Stop books you do not enjoy.** Finishing is not a duty. Put it down and start the next one.
+
+**Read a little, often.** Ten pages a day is [yellow: more than 3,000 pages a year]. That is a dozen books.
+
+[slide]
+**Make it the default.** Read on the train instead of scrolling. Read for five minutes before you sleep.
+
+**Talk about what you read.** Telling a friend about a chapter fixes it in your memory.
+
+**Keep a short list.** Write down every title you finish. The list grows faster than you expect.`,
+  sizeId: "portrait",
+  styleId: "carousel-paper",
+  slide: 0,
+};
+let carouselLayout = null;
+const measureContext = document.createElement("canvas").getContext("2d");
+const lastField = { single: "quote", carousel: "article" };
 
 const words = () => ({ quote: state.quote, author: state.author, source: state.source });
 const currentStyle = () => presetById(state.styleId);
-const currentSize = () => SIZES.find((s) => s.id === state.sizeId);
+const carouselStyle = () => withCarouselDefaults(CAROUSEL_PRESETS.find((p) => p.id === carousel.styleId));
+const isCarousel = () => state.mode === "carousel";
+const currentSize = () =>
+  isCarousel()
+    ? CAROUSEL_SIZES.find((s) => s.id === carousel.sizeId)
+    : SIZES.find((s) => s.id === state.sizeId);
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -114,7 +162,9 @@ function fitPreview() {
   const narrow = matchMedia("(max-width: 860px)").matches;
   const styles = getComputedStyle(stage);
   const availableWidth = stage.clientWidth - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight) - 24;
-  const availableHeight = narrow ? 440 : stage.clientHeight - parseFloat(styles.paddingTop) * 2 - 56;
+  // In Carousel, the slide row under the proof takes space too.
+  const below = 56 + (isCarousel() ? 56 : 0);
+  const availableHeight = narrow ? 440 : stage.clientHeight - parseFloat(styles.paddingTop) * 2 - below;
   const scale = Math.min(availableWidth / width, availableHeight / height);
   const canvas = $("preview");
   canvas.style.width = `${Math.round(width * scale)}px`;
@@ -127,6 +177,13 @@ function requestPreview() {
   requestAnimationFrame(async () => {
     previewPending = false;
     const token = ++previewToken;
+    if (isCarousel()) {
+      const style = carouselStyle();
+      await ensureCarouselFonts(style);
+      if (token !== previewToken) return;
+      drawCarousel(style);
+      return;
+    }
     const style = currentStyle();
     await ensureFonts(style);
     if (token !== previewToken) return;
@@ -145,13 +202,88 @@ function requestPreview() {
   });
 }
 
+// Carousel: lays the article out once, then draws the open slide and the slide row.
+function drawCarousel(style) {
+  const { width, height } = currentSize();
+  carouselLayout = layoutCarousel(measureContext, {
+    width,
+    height,
+    title: carousel.title,
+    subtitle: carousel.subtitle,
+    text: carousel.text,
+    style,
+  });
+  carousel.slide = Math.min(carousel.slide, carouselLayout.slides.length - 1);
+  const strip = $("filmstrip");
+  const { slides } = carouselLayout;
+  while (strip.children.length > slides.length) strip.lastElementChild.remove();
+  while (strip.children.length < slides.length) {
+    const index = strip.children.length;
+    const button = el("button", "thumb");
+    button.type = "button";
+    button.append(el("canvas"));
+    button.addEventListener("click", () => goToSlide(index));
+    strip.append(button);
+  }
+  const scale = FILM_HEIGHT / height;
+  [...strip.children].forEach((button, i) => {
+    button.setAttribute("aria-label", `Slide ${i + 1} of ${slides.length}`);
+    const canvas = button.firstElementChild;
+    canvas.width = Math.round(width * scale);
+    canvas.height = FILM_HEIGHT;
+    renderSlide(canvas.getContext("2d"), carouselLayout, i, scale);
+  });
+  drawSlide();
+}
+
+function drawSlide() {
+  const { width, height, slides } = carouselLayout;
+  const canvas = $("preview");
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+  fitPreview();
+  renderSlide(canvas.getContext("2d"), carouselLayout, carousel.slide);
+  $("proof-note").textContent = `Slide ${carousel.slide + 1} of ${slides.length}  ·  ${width} × ${height} px`;
+  $("prev-slide").disabled = carousel.slide === 0;
+  $("next-slide").disabled = carousel.slide === slides.length - 1;
+  [...$("filmstrip").children].forEach((button, i) => {
+    button.setAttribute("aria-current", String(i === carousel.slide));
+  });
+}
+
+function goToSlide(index) {
+  if (!carouselLayout) return;
+  carousel.slide = Math.min(Math.max(0, index), carouselLayout.slides.length - 1);
+  drawSlide();
+}
+
+function setMode(mode) {
+  if (mode === state.mode) return;
+  state.mode = mode;
+  document.querySelectorAll("#modes [data-mode]").forEach((button) => {
+    button.setAttribute("aria-checked", String(button.dataset.mode === mode));
+  });
+  document.querySelectorAll("[data-mode-field]").forEach((field) => {
+    field.hidden = field.dataset.modeField !== mode;
+  });
+  $("slide-bar").hidden = mode !== "carousel";
+  $("filters").hidden = mode === "carousel";
+  $("highlight-hint").textContent = HIGHLIGHT_HINTS[mode];
+  renderSizes();
+  renderGallery();
+  markSelected();
+  requestPreview();
+}
+
 // Window controls
 
 // Applies a colour to the words selected in Quote. A null colour removes the highlight.
 function highlightSelection(color) {
-  const field = $("quote");
+  const field = $(lastField[state.mode]);
   const result = applyHighlight(field.value, field.selectionStart, field.selectionEnd, color);
-  $("highlight-hint").textContent = result ? HIGHLIGHT_HINT : "Select words in Quote first";
+  $("highlight-hint").textContent = result ? HIGHLIGHT_HINTS[state.mode] : "Select words first";
   if (!result) return;
   field.focus();
   field.select();
@@ -193,15 +325,16 @@ function renderHighlights() {
 }
 
 function renderSizes() {
+  const target = isCarousel() ? carousel : state;
   $("sizes").replaceChildren(
-    ...SIZES.map((size) => {
+    ...(isCarousel() ? CAROUSEL_SIZES : SIZES).map((size) => {
       const button = el("button", "size-option");
       button.type = "button";
       button.setAttribute("role", "radio");
-      button.setAttribute("aria-checked", String(size.id === state.sizeId));
+      button.setAttribute("aria-checked", String(size.id === target.sizeId));
       button.append(el("span", "", size.name), el("small", "", `${size.width} × ${size.height}`));
       button.addEventListener("click", () => {
-        state.sizeId = size.id;
+        target.sizeId = size.id;
         renderSizes();
         requestPreview();
       });
@@ -226,7 +359,51 @@ function renderFilters() {
   );
 }
 
+function renderCarouselGallery() {
+  $("gallery").classList.add("portrait");
+  $("gallery").replaceChildren(
+    ...CAROUSEL_PRESETS.map((preset) => {
+      const button = el("button", "swatch");
+      button.type = "button";
+      button.dataset.styleId = preset.id;
+      const canvas = el("canvas");
+      canvas.setAttribute("aria-hidden", "true");
+      button.append(canvas, el("span", "", preset.name));
+      button.addEventListener("click", () => {
+        carousel.styleId = preset.id;
+        markSelected();
+        requestPreview();
+      });
+      // Thumbnails are small, so the type is enlarged, the same as in the app.
+      const style = mergeDeep(withCarouselDefaults(preset), {
+        title: { size: preset.title.size * 1.4 },
+        body: { size: preset.body.size * 1.9 },
+      });
+      register(canvas, async (target) => {
+        await ensureCarouselFonts(style);
+        target.width = CAROUSEL_THUMB.width;
+        target.height = (CAROUSEL_THUMB.width * 5) / 4;
+        const layout = layoutCarousel(measureContext, {
+          width: 1080,
+          height: 1350,
+          title: CAROUSEL_THUMB.title,
+          text: CAROUSEL_THUMB.text,
+          style,
+        });
+        renderSlide(target.getContext("2d"), layout, 0, CAROUSEL_THUMB.width / 1080);
+      });
+      return button;
+    }),
+  );
+  pump();
+}
+
 function renderGallery() {
+  if (isCarousel()) {
+    renderCarouselGallery();
+    return;
+  }
+  $("gallery").classList.remove("portrait");
   const shown = state.filter === "All" ? PRESETS : PRESETS.filter((p) => p.category === state.filter);
   $("gallery").replaceChildren(
     ...shown.map((preset) => {
@@ -253,10 +430,12 @@ function renderGallery() {
 }
 
 function markSelected() {
+  const selected = isCarousel() ? carousel.styleId : state.styleId;
   document.querySelectorAll("[data-style-id]").forEach((button) => {
-    button.setAttribute("aria-pressed", String(button.dataset.styleId === state.styleId));
+    button.setAttribute("aria-pressed", String(button.dataset.styleId === selected));
   });
-  $("style-name").textContent = PRESETS.find((p) => p.id === state.styleId).name;
+  const presets = isCarousel() ? CAROUSEL_PRESETS : PRESETS;
+  $("style-name").textContent = presets.find((p) => p.id === selected).name;
 }
 
 const sizeProofs = [];
@@ -286,6 +465,8 @@ function buildWall() {
       name.append(el("span", "", preset.name), el("small", "", preset.category));
       button.append(canvas, name);
       button.addEventListener("click", () => {
+        // The proof sheet shows quote styles, so a proof opens in Single image.
+        setMode("single");
         selectStyle(preset.id);
         const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
         $("demo").scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "start" });
@@ -339,6 +520,26 @@ function buildEmphasis() {
 }
 
 let textTimer = null;
+
+function bindCarousel() {
+  for (const [id, key] of [["carousel-title", "title"], ["carousel-subtitle", "subtitle"], ["article", "text"]]) {
+    const field = $(id);
+    field.value = carousel[key];
+    field.addEventListener("input", () => {
+      carousel[key] = field.value;
+      requestPreview();
+    });
+    field.addEventListener("focus", () => {
+      lastField.carousel = id;
+    });
+  }
+  document.querySelectorAll("#modes [data-mode]").forEach((button) => {
+    button.setAttribute("aria-checked", String(button.dataset.mode === state.mode));
+    button.addEventListener("click", () => setMode(button.dataset.mode));
+  });
+  $("prev-slide").addEventListener("click", () => goToSlide(carousel.slide - 1));
+  $("next-slide").addEventListener("click", () => goToSlide(carousel.slide + 1));
+}
 
 function bindWords() {
   for (const key of ["quote", "author", "source"]) {
@@ -408,6 +609,7 @@ function setUpDownloads() {
 
 function start() {
   bindWords();
+  bindCarousel();
   renderHighlights();
   renderSizes();
   renderFilters();

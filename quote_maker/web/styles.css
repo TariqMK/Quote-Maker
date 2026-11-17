@@ -71,11 +71,12 @@ body {
   outline-offset: 2px;
 }
 
-/* Top bar */
+/* Top bar: the name on the left, the mode in the middle, the actions on the right. */
 .topbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
+  gap: 16px;
   height: 52px;
   flex: none;
   padding: 0 16px;
@@ -104,11 +105,18 @@ body {
 
 .topbar-actions {
   display: flex;
+  justify-self: end;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+}
+
+.mode-switch {
+  width: 240px;
 }
 
 .status {
+  min-width: 0;
   max-width: 480px;
   margin-right: 8px;
   overflow: hidden;
@@ -134,8 +142,13 @@ body {
   background: var(--raised);
 }
 
-.button:active {
+.button:active:not(:disabled) {
   transform: scale(0.98);
+}
+
+.button:disabled {
+  cursor: default;
+  opacity: 0.5;
 }
 
 .button.primary {
@@ -186,6 +199,29 @@ body {
 .styles {
   overflow: hidden;
   border-left: 1px solid var(--line);
+}
+
+.mode-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.text-tools {
+  display: flex;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.check .hint {
+  margin-left: 4px;
 }
 
 .field {
@@ -336,6 +372,10 @@ select {
   cursor: pointer;
 }
 
+.quality-row {
+  margin-top: 8px;
+}
+
 .segmented button[aria-checked="true"] {
   background: var(--raised);
   color: var(--text);
@@ -407,6 +447,90 @@ select {
 .crop.br { right: -20px; bottom: -20px; }
 .crop.br::before { left: 4px; top: 0; transform: translate(-4px, 4px); }
 .crop.br::after { left: 0; top: 4px; transform: translate(4px, -4px); }
+
+/* Carousel: a row of slide thumbnails under the proof, with a step button at each end. */
+.stage.carousel .proof {
+  max-height: calc(100% - 36px - 88px);
+}
+
+.slide-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.step {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: background-color 120ms var(--ease);
+}
+
+.step:hover:not(:disabled) {
+  background: var(--raised);
+}
+
+.step:disabled {
+  color: var(--text-3);
+  cursor: default;
+  opacity: 0.5;
+}
+
+.step svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.filmstrip {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.thumb {
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+
+.thumb canvas {
+  display: block;
+  height: 64px;
+  border-radius: 4px;
+  outline: 1px solid var(--line);
+  outline-offset: -1px;
+  transition: outline-color 120ms var(--ease);
+}
+
+.thumb:hover canvas {
+  outline-color: var(--line-strong);
+}
+
+.thumb[aria-current="true"] canvas {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 
 .proof-note {
   flex: none;
@@ -537,6 +661,10 @@ select {
   outline: 1px solid var(--line);
   outline-offset: -1px;
   transition: outline-color 120ms var(--ease);
+}
+
+.gallery.portrait .swatch canvas {
+  aspect-ratio: 4 / 5;
 }
 
 .swatch:hover canvas {

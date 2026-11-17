@@ -9,26 +9,60 @@ from pathlib import Path
 import webview
 
 from quote_maker._version import __version__
-from quote_maker.storage import Storage, safe_filename
+from quote_maker.storage import Storage, new_folder, safe_filename, safe_folder_name
 
 WEB_DIR = Path(__file__).parent / "web"
 # macOS ignores this and takes the window icon from the app bundle.
 WINDOW_ICON = WEB_DIR / ("icon.ico" if sys.platform == "win32" else "icon.png")
-PNG_PREFIX = "data:image/png;base64,"
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+JPEG_SIGNATURE = b"\xff\xd8\xff"
+# The image types the canvas can send: data URL prefix, file signature and save dialog filter.
+IMAGE_TYPES = {
+    "png": ("data:image/png;base64,", PNG_SIGNATURE, "PNG image (*.png)"),
+    "jpg": ("data:image/jpeg;base64,", JPEG_SIGNATURE, "JPEG image (*.jpg;*.jpeg)"),
+}
+# Larger text files are refused, because an article is never this long.
+MAX_TEXT_FILE_BYTES = 2_000_000
 
 
-def decode_png(data_url: str) -> bytes:
-    """Convert the data URL from the canvas to PNG bytes. Reject anything that is not a PNG."""
-    if not isinstance(data_url, str) or not data_url.startswith(PNG_PREFIX):
-        raise ValueError("The image is not a PNG data URL.")
+def decode_image(data_url: str) -> tuple[bytes, str]:
+    """Convert a data URL from the canvas to image bytes and their type, "png" or "jpg".
+
+    Anything that is not a PNG or JPEG image is rejected.
+    """
+    for kind, (prefix, signature, _) in IMAGE_TYPES.items():
+        if isinstance(data_url, str) and data_url.startswith(prefix):
+            try:
+                data = base64.b64decode(data_url[len(prefix) :], validate=True)
+            except binascii.Error as error:
+                raise ValueError("The image data is damaged.") from error
+            if not data.startswith(signature):
+                raise ValueError("The image data does not match its type.")
+            return data, kind
+    raise ValueError("The image is not a PNG or JPEG data URL.")
+
+
+def write_new_image(folder: Path, filename: str, data_url: str) -> Path:
+    """Write one image into folder. An existing file is never replaced."""
+    data, kind = decode_image(data_url)
+    path = folder / safe_filename(filename, kind)
+    with path.open("xb") as file:
+        file.write(data)
+    return path
+
+
+def read_text_file(path: Path) -> dict:
+    """Read a text file for the carousel. The file itself is never changed."""
+    if path.stat().st_size > MAX_TEXT_FILE_BYTES:
+        raise ValueError("The file is larger than 2 MB.")
+    data = path.read_bytes()
+    if data.startswith(b"\xef\xbb\xbf"):
+        data = data[3:]
     try:
-        png = base64.b64decode(data_url[len(PNG_PREFIX) :], validate=True)
-    except binascii.Error as error:
-        raise ValueError("The image data is damaged.") from error
-    if not png.startswith(PNG_SIGNATURE):
-        raise ValueError("The image is not a PNG.")
-    return png
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        text = data.decode("cp1252", errors="replace")
+    return {"name": path.stem, "text": text}
 
 
 class Api:
@@ -38,6 +72,8 @@ class Api:
         # A leading underscore stops pywebview from exposing these objects to the page.
         self._storage = storage
         self._window = None
+        # The folder the user chose for the current set of slides. Slides are written only here.
+        self._export_folder = None
 
     def attach(self, window) -> None:
         self._window = window
@@ -45,14 +81,24 @@ class Api:
     def get_version(self):
         return __version__
 
-    def list_styles(self):
-        return self._storage.list_styles()
+    def list_styles(self, kind="single"):
+        return self._storage.list_styles(kind)
 
-    def save_style(self, style):
-        return self._storage.save_style(style)
+    def save_style(self, style, kind="single"):
+        return self._storage.save_style(style, kind)
 
-    def delete_style(self, style_id):
-        return self._storage.delete_style(style_id)
+    def delete_style(self, style_id, kind="single"):
+        return self._storage.delete_style(style_id, kind)
+
+    def open_text_file(self):
+        """Ask the user for a text file and return {name, text}, or None if cancelled."""
+        chosen = self._window.create_file_dialog(
+            webview.FileDialog.OPEN,
+            file_types=("Text files (*.txt;*.md)", "All files (*.*)"),
+        )
+        if not chosen:
+            return None
+        return read_text_file(Path(chosen if isinstance(chosen, str) else chosen[0]))
 
     def load_state(self):
         return self._storage.load_state()
@@ -61,20 +107,42 @@ class Api:
         self._storage.save_state(state)
 
     def save_image(self, data_url, filename):
-        """Ask the user where to save, then write the PNG. Return the path, or None if cancelled."""
-        png = decode_png(data_url)
+        """Ask the user where to save, then write the image. Return the path, or None if cancelled.
+
+        The save dialog asks the user before it replaces a file of the same name.
+        """
+        data, kind = decode_image(data_url)
         chosen = self._window.create_file_dialog(
             webview.FileDialog.SAVE,
-            save_filename=safe_filename(filename),
-            file_types=("PNG image (*.png)",),
+            save_filename=safe_filename(filename, kind),
+            file_types=(IMAGE_TYPES[kind][2],),
         )
         if not chosen:
             return None
         path = Path(chosen if isinstance(chosen, str) else chosen[0])
-        if path.suffix.lower() != ".png":
-            path = path.with_name(path.name + ".png")
-        path.write_bytes(png)
+        allowed = (".png",) if kind == "png" else (".jpg", ".jpeg")
+        if path.suffix.lower() not in allowed:
+            path = path.with_name(f"{path.name}.{kind}")
+        path.write_bytes(data)
         return str(path)
+
+    def choose_export_folder(self, name):
+        """Ask where to save a set of slides, and make a new folder there named after the set.
+
+        Returns the new folder's path, or None if cancelled.
+        """
+        chosen = self._window.create_file_dialog(webview.FileDialog.FOLDER)
+        if not chosen:
+            return None
+        parent = Path(chosen if isinstance(chosen, str) else chosen[0])
+        self._export_folder = new_folder(parent, safe_folder_name(name))
+        return str(self._export_folder)
+
+    def save_export_image(self, data_url, filename):
+        """Write one slide into the folder from choose_export_folder. Returns the file's path."""
+        if self._export_folder is None:
+            raise ValueError("Choose a folder first.")
+        return str(write_new_image(self._export_folder, filename, data_url))
 
 
 def main() -> None:

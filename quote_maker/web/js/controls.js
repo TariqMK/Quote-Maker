@@ -24,6 +24,33 @@ const fontControls = (group, label = "Font") => [
 
 const ALIGN = [["left", "Left"], ["center", "Centre"], ["right", "Right"]];
 
+// Background, texture and frame controls are the same in both modes.
+const FILL_CONTROLS = [
+  { path: "background.type", label: "Fill", type: "select", options: [["solid", "Solid"], ["linear", "Linear gradient"], ["radial", "Radial gradient"]] },
+  { path: "background.color1", label: "Colour 1", type: "color" },
+  { path: "background.color2", label: "Colour 2", type: "color", when: (s) => s.background.type !== "solid" },
+  { path: "background.color3", label: "Colour 3", type: "optionalColor", when: (s) => s.background.type !== "solid" },
+  { path: "background.angle", label: "Angle", type: "range", min: 0, max: 360, step: 5, when: (s) => s.background.type === "linear" },
+];
+
+const TEXTURE_CONTROLS = [
+  { heading: "Texture" },
+  { path: "texture.type", label: "Texture", type: "select", options: [["none", "None"], ["grain", "Paper grain"], ["dots", "Dots"], ["lines", "Ruled lines"], ["grid", "Grid"]] },
+  { path: "texture.opacity", label: "Strength", type: "range", min: 0.02, max: 0.6, step: 0.01, when: (s) => s.texture.type !== "none" },
+  { path: "texture.color", label: "Colour", type: "color", when: (s) => !["none", "grain"].includes(s.texture.type) },
+];
+
+const FRAME_CONTROLS = [
+  { path: "frame.type", label: "Frame", type: "select", options: [["none", "None"], ["line", "Line"], ["double", "Double line"], ["corners", "Corners"], ["card", "Card"]] },
+  { path: "frame.inset", label: "Inset", type: "range", min: 0, max: 240, step: 2, when: (s) => s.frame.type !== "none" },
+  { path: "frame.color", label: "Colour", type: "color", when: (s) => !["none", "card"].includes(s.frame.type) },
+  { path: "frame.width", label: "Thickness", type: "range", min: 0.5, max: 24, step: 0.5, when: (s) => !["none", "card"].includes(s.frame.type) },
+  { path: "frame.cardColor", label: "Card colour", type: "color", when: (s) => s.frame.type === "card" },
+  { path: "frame.cardOpacity", label: "Card opacity", type: "range", min: 0.1, max: 1, step: 0.01, when: (s) => s.frame.type === "card" },
+  { path: "frame.radius", label: "Corner radius", type: "range", min: 0, max: 120, step: 1, when: (s) => s.frame.type === "card" },
+  { path: "frame.cardShadow", label: "Shadow", type: "range", min: 0, max: 0.6, step: 0.01, when: (s) => s.frame.type === "card" },
+];
+
 export const CONTROL_GROUPS = [
   {
     title: "Quote text",
@@ -75,15 +102,8 @@ export const CONTROL_GROUPS = [
     title: "Background",
     open: false,
     controls: [
-      { path: "background.type", label: "Fill", type: "select", options: [["solid", "Solid"], ["linear", "Linear gradient"], ["radial", "Radial gradient"]] },
-      { path: "background.color1", label: "Colour 1", type: "color" },
-      { path: "background.color2", label: "Colour 2", type: "color", when: (s) => s.background.type !== "solid" },
-      { path: "background.color3", label: "Colour 3", type: "optionalColor", when: (s) => s.background.type !== "solid" },
-      { path: "background.angle", label: "Angle", type: "range", min: 0, max: 360, step: 5, when: (s) => s.background.type === "linear" },
-      { heading: "Texture" },
-      { path: "texture.type", label: "Texture", type: "select", options: [["none", "None"], ["grain", "Paper grain"], ["dots", "Dots"], ["lines", "Ruled lines"], ["grid", "Grid"]] },
-      { path: "texture.opacity", label: "Strength", type: "range", min: 0.02, max: 0.6, step: 0.01, when: (s) => s.texture.type !== "none" },
-      { path: "texture.color", label: "Colour", type: "color", when: (s) => !["none", "grain"].includes(s.texture.type) },
+      ...FILL_CONTROLS,
+      ...TEXTURE_CONTROLS,
       { heading: "Shape" },
       { path: "decor.type", label: "Shape", type: "select", options: [["none", "None"], ["sun", "Circle"], ["arch", "Arch"], ["band", "Top band"]] },
       { path: "decor.color", label: "Colour", type: "color", when: (s) => s.decor.type !== "none" },
@@ -105,14 +125,7 @@ export const CONTROL_GROUPS = [
     title: "Frame",
     open: false,
     controls: [
-      { path: "frame.type", label: "Frame", type: "select", options: [["none", "None"], ["line", "Line"], ["double", "Double line"], ["corners", "Corners"], ["card", "Card"]] },
-      { path: "frame.inset", label: "Inset", type: "range", min: 0, max: 240, step: 2, when: (s) => s.frame.type !== "none" },
-      { path: "frame.color", label: "Colour", type: "color", when: (s) => !["none", "card"].includes(s.frame.type) },
-      { path: "frame.width", label: "Thickness", type: "range", min: 0.5, max: 24, step: 0.5, when: (s) => !["none", "card"].includes(s.frame.type) },
-      { path: "frame.cardColor", label: "Card colour", type: "color", when: (s) => s.frame.type === "card" },
-      { path: "frame.cardOpacity", label: "Card opacity", type: "range", min: 0.1, max: 1, step: 0.01, when: (s) => s.frame.type === "card" },
-      { path: "frame.radius", label: "Corner radius", type: "range", min: 0, max: 120, step: 1, when: (s) => s.frame.type === "card" },
-      { path: "frame.cardShadow", label: "Shadow", type: "range", min: 0, max: 0.6, step: 0.01, when: (s) => s.frame.type === "card" },
+      ...FRAME_CONTROLS,
     ],
   },
   {
@@ -123,6 +136,79 @@ export const CONTROL_GROUPS = [
       { path: "layout.vAlign", label: "Position", type: "select", options: [["top", "Top"], ["center", "Middle"], ["bottom", "Bottom"]] },
       { path: "layout.margin", label: "Margin", type: "range", min: 20, max: 300, step: 2 },
       { path: "layout.textWidth", label: "Text width %", type: "range", min: 40, max: 100, step: 1 },
+    ],
+  },
+];
+
+// Fine-tune controls for carousel styles.
+export const CAROUSEL_CONTROL_GROUPS = [
+  {
+    title: "Body text",
+    controls: [
+      ...fontControls("body"),
+      { path: "body.color", label: "Colour", type: "color" },
+      { path: "body.size", label: "Size", type: "range", min: 14, max: 64, step: 1 },
+      { path: "body.lineHeight", label: "Line height", type: "range", min: 1, max: 2.4, step: 0.01 },
+      { path: "body.letterSpacing", label: "Letter spacing", type: "range", min: -0.05, max: 0.2, step: 0.005 },
+      { path: "body.paragraphGap", label: "Paragraph gap", type: "range", min: 0, max: 1.5, step: 0.01 },
+    ],
+  },
+  {
+    title: "Title and subtitle",
+    open: false,
+    controls: [
+      { heading: "Title" },
+      ...fontControls("title"),
+      { path: "title.color", label: "Colour", type: "color" },
+      { path: "title.size", label: "Size", type: "range", min: 24, max: 160, step: 1 },
+      { path: "title.lineHeight", label: "Line height", type: "range", min: 0.9, max: 1.8, step: 0.01 },
+      { path: "title.letterSpacing", label: "Letter spacing", type: "range", min: -0.05, max: 0.3, step: 0.005 },
+      { path: "title.uppercase", label: "Capitals", type: "toggle" },
+      { heading: "Subtitle" },
+      ...fontControls("subtitle"),
+      { path: "subtitle.color", label: "Colour", type: "color" },
+      { path: "subtitle.size", label: "Size", type: "range", min: 12, max: 64, step: 1 },
+      { path: "subtitle.letterSpacing", label: "Letter spacing", type: "range", min: 0, max: 0.4, step: 0.01 },
+      { path: "subtitle.uppercase", label: "Capitals", type: "toggle" },
+      { path: "subtitle.gap", label: "Gap above", type: "range", min: 0, max: 80, step: 1 },
+      { heading: "Spacing" },
+      { path: "body.gap", label: "Gap below", type: "range", min: 0, max: 200, step: 2 },
+    ],
+  },
+  {
+    title: "Page numbers",
+    open: false,
+    controls: [
+      { path: "pageNumber.position", label: "Position", type: "select", options: [["none", "None"], ...ALIGN] },
+      { path: "pageNumber.font", label: "Font", type: "font", when: (s) => s.pageNumber.position !== "none" },
+      { path: "pageNumber.color", label: "Colour", type: "color", when: (s) => s.pageNumber.position !== "none" },
+      { path: "pageNumber.size", label: "Size", type: "range", min: 10, max: 48, step: 1, when: (s) => s.pageNumber.position !== "none" },
+    ],
+  },
+  {
+    title: "Background",
+    open: false,
+    controls: [...FILL_CONTROLS, ...TEXTURE_CONTROLS],
+  },
+  {
+    title: "Frame",
+    open: false,
+    controls: FRAME_CONTROLS,
+  },
+  {
+    title: "Layout",
+    open: false,
+    controls: [
+      { path: "layout.align", label: "Align", type: "select", options: ALIGN },
+      {
+        path: "layout.vAlign",
+        label: "Position",
+        type: "select",
+        options: [["top", "Top"], ["body", "Centre the body"], ["all", "Centre everything"]],
+      },
+      { path: "layout.marginX", label: "Side margins", type: "range", min: 20, max: 300, step: 2 },
+      { path: "layout.marginTop", label: "Top margin", type: "range", min: 20, max: 300, step: 2 },
+      { path: "layout.marginBottom", label: "Bottom margin", type: "range", min: 20, max: 300, step: 2 },
     ],
   },
 ];
@@ -257,7 +343,7 @@ function buildControl(control, style, onChange) {
 }
 
 // Fills the Fine-tune pane. Keeps open sections, scroll position and focus across rebuilds.
-export function renderControls(container, style, onChange) {
+export function renderControls(container, style, onChange, groups = CONTROL_GROUPS) {
   const open = new Map(
     [...container.querySelectorAll("details")].map((d) => [d.dataset.title, d.open]),
   );
@@ -265,7 +351,7 @@ export function renderControls(container, style, onChange) {
   const focusPath = document.activeElement?.closest?.("[data-path]")?.dataset.path;
   container.replaceChildren();
 
-  for (const group of CONTROL_GROUPS) {
+  for (const group of groups) {
     const details = document.createElement("details");
     details.className = "group";
     details.dataset.title = group.title;

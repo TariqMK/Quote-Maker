@@ -9,6 +9,8 @@ from pathlib import Path
 
 MAX_NAME_LENGTH = 60
 DATA_FOLDER_NAME = "Quote-Maker Data"
+# Each mode keeps its saved styles in its own file, because the two kinds of style differ.
+STYLE_FILES = {"single": "styles.json", "carousel": "carousel-styles.json"}
 
 
 def data_dir() -> Path:
@@ -52,16 +54,21 @@ def _read_json(path: Path, default):
 class Storage:
     def __init__(self, folder: Path | None = None):
         self.folder = Path(folder) if folder else data_dir()
-        self.styles_path = self.folder / "styles.json"
+        self.styles_path = self.folder / STYLE_FILES["single"]
         self.state_path = self.folder / "state.json"
 
-    def list_styles(self) -> list[dict]:
-        styles = _read_json(self.styles_path, [])
+    def _styles_path(self, kind: str) -> Path:
+        if kind not in STYLE_FILES:
+            raise ValueError(f"Unknown style kind: {kind}")
+        return self.folder / STYLE_FILES[kind]
+
+    def list_styles(self, kind: str = "single") -> list[dict]:
+        styles = _read_json(self._styles_path(kind), [])
         if not isinstance(styles, list):
             return []
         return [s for s in styles if isinstance(s, dict) and s.get("id")]
 
-    def save_style(self, style: dict) -> dict:
+    def save_style(self, style: dict, kind: str = "single") -> dict:
         """Add a style, or replace the saved style that has the same id."""
         if not isinstance(style, dict):
             raise TypeError("A style must be an object.")
@@ -69,22 +76,22 @@ class Storage:
         if not name:
             raise ValueError("A style must have a name.")
         saved = {**style, "name": name, "id": style.get("id") or f"custom-{uuid.uuid4().hex[:12]}"}
-        styles = self.list_styles()
+        styles = self.list_styles(kind)
         for index, existing in enumerate(styles):
             if existing["id"] == saved["id"]:
                 styles[index] = saved
                 break
         else:
             styles.append(saved)
-        _write_json(self.styles_path, styles)
+        _write_json(self._styles_path(kind), styles)
         return saved
 
-    def delete_style(self, style_id: str) -> bool:
-        styles = self.list_styles()
+    def delete_style(self, style_id: str, kind: str = "single") -> bool:
+        styles = self.list_styles(kind)
         kept = [s for s in styles if s["id"] != style_id]
         if len(kept) == len(styles):
             return False
-        _write_json(self.styles_path, kept)
+        _write_json(self._styles_path(kind), kept)
         return True
 
     def load_state(self) -> dict:
@@ -95,10 +102,32 @@ class Storage:
         _write_json(self.state_path, state)
 
 
-def safe_filename(name: str) -> str:
-    """Return a PNG file name that is valid on Windows, macOS and Linux."""
+def _safe_stem(name: str, fallback: str) -> str:
+    """Remove characters and names that Windows, macOS or Linux do not allow in a file name."""
     stem = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "", str(name)).strip(" .")
-    stem = re.sub(r"\.png$", "", stem, flags=re.IGNORECASE)[:80].strip(" .")
+    stem = re.sub(r"\.(png|jpe?g)$", "", stem, flags=re.IGNORECASE)[:80].strip(" .")
     if not stem or re.fullmatch(r"(?i)con|prn|aux|nul|com\d|lpt\d", stem):
-        stem = "quote"
-    return f"{stem}.png"
+        stem = fallback
+    return stem
+
+
+def safe_filename(name: str, extension: str = "png") -> str:
+    """Return an image file name that is valid on Windows, macOS and Linux."""
+    return f"{_safe_stem(name, 'quote')}.{extension}"
+
+
+def safe_folder_name(name: str) -> str:
+    """Return a folder name for a set of slides that is valid on every system."""
+    return _safe_stem(name, "Carousel")
+
+
+def new_folder(parent: Path, name: str) -> Path:
+    """Create a new folder in parent. A name already in use gets a number, so nothing is overwritten."""
+    for number in range(1, 1000):
+        folder = parent / (name if number == 1 else f"{name} ({number})")
+        try:
+            folder.mkdir()
+            return folder
+        except FileExistsError:
+            continue
+    raise FileExistsError(f"Could not find a free folder name for {name}.")

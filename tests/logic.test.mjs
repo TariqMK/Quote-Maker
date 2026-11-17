@@ -4,8 +4,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { FONTS } from "../quote_maker/web/js/fonts.js";
-import { breakLines, fitText, readableInk } from "../quote_maker/web/js/layout.js";
+import { breakLines, fitText, layoutAt, readableInk } from "../quote_maker/web/js/layout.js";
 import { DEFAULT_STYLE, PRESETS, withDefaults } from "../quote_maker/web/js/presets.js";
+import { buildSavedState, readSavedState } from "../quote_maker/web/js/state.js";
 import {
   HIGHLIGHTS,
   applyHighlight,
@@ -246,4 +247,29 @@ test("presets contain only style values the app knows about", () => {
     }
   };
   PRESETS.forEach((preset) => check(preset, DEFAULT_STYLE, ""));
+});
+
+test("layoutAt keeps the given size and stacks lines", () => {
+  const paragraphs = [{ words: [{ text: "a" }, { text: "b" }, { text: "c" }], widths100: [100, 100, 100], gap: false }];
+  const result = layoutAt(paragraphs, 50, { maxWidth: 110, lineHeight: 1.2, paragraphGap: 0.6, balance: false, space100: 20 });
+  assert.equal(result.size, 50);
+  assert.equal(result.lines.length, 2);
+  assert.equal(result.height, 2 * 50 * 1.2);
+});
+
+test("saved state from before modes is read as single image work", () => {
+  const old = { quote: "Old words", styleId: "x", scale: 2 };
+  assert.deepEqual(readSavedState(old), { mode: "single", single: old, carousel: {} });
+});
+
+test("saved state with modes keeps each mode's work", () => {
+  const single = { quote: "New words" };
+  const carousel = { title: "Slides" };
+  assert.deepEqual(readSavedState(buildSavedState("carousel", single, carousel)), { mode: "carousel", single, carousel });
+});
+
+test("damaged or unknown saved state falls back to defaults", () => {
+  assert.deepEqual(readSavedState(null), { mode: "single", single: {}, carousel: {} });
+  assert.deepEqual(readSavedState([1]), { mode: "single", single: {}, carousel: {} });
+  assert.equal(readSavedState({ mode: "nope", single: {} }).mode, "single");
 });

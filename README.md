@@ -1,6 +1,6 @@
-![Quote-Maker. Any words. Many styles. One image.](assets/banner.png)
+![Quote-Maker. Any words. Many styles.](assets/banner.png)
 
-Quote-Maker turns pasted text into a quote image. Select a style, adjust it, and save a PNG. Works offline. Sends no data.
+Quote-Maker turns pasted text into a quote image, or an article into a carousel of slides. Select a style, adjust it, and save PNG or JPG files. Works offline. Sends no data.
 
 Try the working demo on the [Quote-Maker website](https://tariqmk.github.io/Quote-Maker/).
 
@@ -11,13 +11,16 @@ Try the working demo on the [Quote-Maker website](https://tariqmk.github.io/Quot
 
 ## Features
 
-- 25+ preset styles in 5 categories: Classic, Modern, Bold, Soft and Retro.
+- Two modes: **Single image** for one quote, and **Carousel** for an article on a set of slides.
+- 25+ quote styles in 5 categories: Classic, Modern, Bold, Soft and Retro.
+- 6 carousel styles. Carousel text splits into slides automatically, or where you add a slide break.
 - Highlights behind selected words, in 6 preset colours or a custom colour.
-- Fine-tune controls for text, author and source, background, quote mark, frame and layout.
+- Fine-tune controls for text, background, frame and layout in each mode.
 - Custom styles that you save, update and delete.
 - 24 bundled font families.
-- 5 image sizes and 3 export scales.
-- Text that shrinks automatically to fit the image.
+- Quote text that shrinks automatically to fit the image.
+- PNG or JPG files, at 3 export scales.
+- **Save all slides** puts every slide of a carousel in a new folder.
 - Portable: your styles and work stay in one folder beside the app.
 
 ## Download
@@ -38,12 +41,14 @@ Try the working demo on the [Quote-Maker website](https://tariqmk.github.io/Quot
 
 ## Make a quote image
 
-1. Paste your text into **Quote**.
-2. Optional: enter **Author** and **Source**. Empty fields do not appear in the image.
-3. Select a style in the **Styles** tab.
-4. Select an **Image size**.
-5. Optional: select an **Export scale**. A scale of 2x makes an image of 2160 x 2700 px from a size of 1080 x 1350 px.
-6. Select **Save image** (Ctrl+S), or select **Copy image**.
+1. At the top of the window, select **Single image**.
+2. Paste your text into **Quote**.
+3. Optional: enter **Author** and **Source**. Empty fields do not appear in the image.
+4. Select a style in the **Styles** tab.
+5. Select an **Image size**.
+6. Optional: select an **Export scale**. A scale of 2x makes an image of 2160 x 2700 px from a size of 1080 x 1350 px.
+7. Optional: under **File type**, select **PNG** or **JPG**. For JPG, set **JPG quality** from 60 to 100. The default is 90.
+8. Select **Save image** (Ctrl+S), or select **Copy image**. A copied image is always PNG.
 
 ## Quote text
 
@@ -63,21 +68,80 @@ The app adds a mark to the text, such as `[yellow: these words]` or `[#7fd1ae: t
 
 - To change a colour, select the words again, then select the new colour.
 - To remove a highlight, select the words, then select **Clear**.
-- Highlights work in **Quote** only. **Author** and **Source** do not have them.
+- In **Single image**, highlights work in **Quote** only. **Author** and **Source** do not have them.
+- In **Carousel**, highlights work in **Title**, **Subtitle** and **Article**. The colour applies to the field you used last.
 - The text keeps the style's colour when it is readable on the highlight. If it is not readable, the text changes to near-black or white.
 - A highlight removes the style's text shadow from those words.
 
+## Make a carousel
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/carousel-dark.png">
+  <img src="assets/screenshots/carousel-light.png" alt="Quote-Maker in Carousel mode: the title, subtitle and article on the left, slide 1 of an article in the Paper style in the centre with a row of slide thumbnails below it, and the carousel styles on the right" width="840">
+</picture>
+
+1. At the top of the window, select **Carousel**.
+2. Optional: enter a **Title** and a **Subtitle**. They appear on slide 1 only.
+3. Paste your text into **Article**. To use a text file, select **Open text file**, then select a `.txt` or `.md` file.
+4. Select a style in the **Styles** tab.
+5. Select an **Image size**.
+6. Check each slide. Select a thumbnail below the preview, or press the Left and Right arrow keys.
+7. Optional: select an **Export scale** and a **File type**.
+8. Select **Save all slides** (Ctrl+S).
+9. Select a folder. The app makes a new folder in it, named after the title, and saves each slide there.
+
+**Note:** **Save all slides** never replaces a file. If a folder with the same name exists, the app makes a new folder, such as `Six ways to read more books (2)`.
+
+- To save the open slide only, select **Save slide**.
+- To copy the open slide, select **Copy slide**.
+- The app opens a text file to read it only. It does not change the file.
+- If **Article** has your own text, **Open text file** asks before it replaces it. To get the old text back, select **Article** and press Ctrl+Z.
+
+### Article text
+
+- A blank line starts a new paragraph. Single line breaks join into one paragraph.
+- To keep each line break, for a poem or a list, select **Keep line breaks**.
+- Put one star around words for italic: `*these words*`. Put two stars around words for bold: `**these words**`. Three stars make bold italic.
+- A star without a partner stays in the text, such as `5 * 3`.
+- Straight quotes, `--` and `...` change to typographic characters.
+
+### How the text splits into slides
+
+- A paragraph that fits on the slide stays whole.
+- A paragraph that does not fit moves whole to the next slide when the slide is at least half full and the paragraph fits on one slide.
+- Otherwise the paragraph splits and continues on the next slide, with at least 2 lines on each slide.
+- To start a new slide at a point, put the cursor there and select **Insert slide break**. The app adds `[slide]` on a line of its own. You can also type it.
+- To put the title on a slide of its own, add a slide break at the start of **Article**.
+- Page numbers, such as `2 / 5`, appear when the carousel has more than one slide. To move or remove them, use **Page numbers** in the **Fine-tune** tab.
+
+The caption below the preview shows the slide number and the image size. It also shows when text is too large for a slide.
+
+### Keyboard
+
+| Key | Action |
+|---|---|
+| Left arrow, Page Up | Previous slide |
+| Right arrow, Page Down | Next slide |
+| Home | First slide |
+| End | Last slide |
+| Ctrl+S | **Save all slides** |
+
+The slide keys do not work while the cursor is in a text field.
+
 ## Image sizes
 
-| Image size | Pixels |
-|---|---|
-| Square | 1080 x 1080 |
-| Portrait | 1080 x 1350 |
-| Landscape | 1200 x 675 |
-| Story | 1080 x 1920 |
-| Custom | 200 to 6000 per side |
+| Mode | Image size | Pixels |
+|---|---|---|
+| Single image | Square | 1080 x 1080 |
+| Single image | Portrait | 1080 x 1350 |
+| Single image | Landscape | 1200 x 675 |
+| Single image | Story | 1080 x 1920 |
+| Single image | Custom | 200 to 6000 per side |
+| Carousel | Portrait | 1080 x 1350 |
+| Carousel | Square | 1080 x 1080 |
+| Carousel | Tall | 1080 x 1440 |
 
-The caption below the preview shows the image size. It also shows when the text was reduced to fit.
+In **Single image**, the caption below the preview shows the image size. It also shows when the text was reduced to fit.
 
 ## Custom styles
 
@@ -91,7 +155,7 @@ The caption below the preview shows the image size. It also shows when the text 
 3. Select **Save as new**.
 4. Enter a name, then select **Save style**.
 
-The style appears under **My styles**.
+The style appears under **My styles**. Each mode has its own list of custom styles.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/my-styles-dark.png">
@@ -105,7 +169,7 @@ The style appears under **My styles**.
 
 ## Move the app
 
-The app is portable. It keeps your custom styles and your last quote and settings in a folder named `Quote-Maker Data`, beside the app. The app makes this folder when it first saves something.
+The app is portable. It keeps your custom styles and your last work and settings in each mode in a folder named `Quote-Maker Data`, beside the app. The app makes this folder when it first saves something.
 
 1. Close the app.
 2. Move the app and the `Quote-Maker Data` folder together to the new location.
@@ -118,8 +182,9 @@ The app is portable. It keeps your custom styles and your last quote and setting
 - The app works offline.
 - The app has no telemetry, analytics or tracking.
 - The app makes no network connections. The window loads its interface from a local server on your own computer (127.0.0.1). A content security policy blocks all other network requests.
-- Images are saved only where you select.
-- Custom styles and your last quote and settings stay in the `Quote-Maker Data` folder beside the app. The app keeps your data in no other place.
+- Images and slide folders are saved only where you select.
+- The app reads a text file only when you select **Open text file**. It does not change the file.
+- Custom styles and your last work and settings stay in the `Quote-Maker Data` folder beside the app. The app keeps your data in no other place.
 - While it runs, the app and its window use temporary working files in your system's temporary folder. They hold none of your saved styles, and they are normally removed when the app closes.
 - The website is separate from the app. Its demo sets your text in your browser and does not send it. The website makes one outside request, to the GitHub API, to find the latest release. GitHub can see your IP address when your browser makes this request. The website has no analytics or tracking.
 
@@ -145,7 +210,7 @@ Run all tests:
 
 ## Update the Screenshots
 
-The script needs Microsoft Edge. It uses made-up sample data only. The version label shows the newest version tag in the repository.
+The script uses Microsoft Edge. If Edge is not installed, it uses the Chromium browser of Playwright: install it once with `.venv\Scripts\python -m playwright install chromium`. The script uses made-up sample data only. The version label shows the newest version tag in the repository.
 
 1. Install the brand tools: `.venv\Scripts\python -m pip install -e .[brand]`
 2. Retake the screenshots: `.venv\Scripts\python assets/make_screenshots.py`

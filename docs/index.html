@@ -8,10 +8,10 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src https://api.github.com; base-uri 'none'; form-action 'none'"
     />
-    <title>Quote-Maker: any words, many styles, one image</title>
+    <title>Quote-Maker: any words, many styles</title>
     <meta
       name="description"
-      content="A free desktop app that turns pasted text into a quote image. 25+ styles, 24 bundled fonts, full control. Works offline and sends no data."
+      content="A free desktop app that turns pasted text into a quote image, or an article into a carousel of slides. 25+ quote styles, 6 carousel styles, 24 bundled fonts. Works offline and sends no data."
     />
     <meta name="theme-color" content="#0e0e0f" />
     <meta name="color-scheme" content="dark" />
@@ -19,14 +19,14 @@
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Quote-Maker" />
-    <meta property="og:description" content="Any words. Many styles. One image. A free desktop app that works offline and sends no data." />
+    <meta property="og:description" content="Any words. Many styles. Quote images and carousels from a free desktop app that works offline and sends no data." />
     <meta property="og:url" content="https://tariqmk.github.io/Quote-Maker/" />
     <meta property="og:image" content="https://tariqmk.github.io/Quote-Maker/social-card.png" />
     <meta property="og:image:width" content="1280" />
     <meta property="og:image:height" content="640" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Quote-Maker" />
-    <meta name="twitter:description" content="Any words. Many styles. One image. A free desktop app that works offline and sends no data." />
+    <meta name="twitter:description" content="Any words. Many styles. Quote images and carousels from a free desktop app that works offline and sends no data." />
     <meta name="twitter:image" content="https://tariqmk.github.io/Quote-Maker/social-card.png" />
     <link rel="stylesheet" href="engine/fonts.css" />
     <link rel="stylesheet" href="style.css" />
@@ -51,12 +51,12 @@
       <section class="hero">
         <div class="wrap">
           <h1>
-            <span>Any words.</span> <span>Many styles.</span> <span>One image.</span>
+            <span>Any words.</span> <span>Many styles.</span>
           </h1>
           <div class="hero-row">
             <p class="lede">
-              Quote-Maker is a desktop app that sets pasted text as a finished quote image. Select a style,
-              adjust it, and save a PNG.
+              Quote-Maker is a desktop app that sets pasted text as a finished quote image, or an article as a
+              carousel of slides. Select a style, adjust it, and save PNG or JPG files.
             </p>
             <div class="hero-actions">
               <div class="actions">
@@ -77,7 +77,8 @@
           </div>
 
           <p class="demo-label" id="demo">
-            This window works. Type in it, or select a style. Your text stays in this browser tab.
+            This window works. Type in it, select a style, or switch to Carousel. Your text stays in this
+            browser tab.
           </p>
           <noscript><p class="demo-label">The working demo needs JavaScript.</p></noscript>
 
@@ -90,6 +91,10 @@
                   <span class="wordmark">Quote-Maker</span>
                   <span class="version" id="window-version"></span>
                 </div>
+                <div class="segmented mode-switch" id="modes" role="radiogroup" aria-label="Mode">
+                  <button type="button" role="radio" data-mode="single">Single image</button>
+                  <button type="button" role="radio" data-mode="carousel">Carousel</button>
+                </div>
                 <a class="button primary" href="#download">Download to save images</a>
               </div>
 
@@ -100,25 +105,47 @@
                     <span class="crop bl"></span><span class="crop br"></span>
                     <canvas id="preview" role="img" aria-label="Preview of the quote image"></canvas>
                   </div>
-                  <p class="proof-note" id="proof-note" aria-live="polite"></p>
+                  <div class="slide-bar" id="slide-bar" hidden>
+                    <button class="step" id="prev-slide" type="button" aria-label="Previous slide">
+                      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" /></svg>
+                    </button>
+                    <div class="filmstrip" id="filmstrip" role="group" aria-label="Slides"></div>
+                    <button class="step" id="next-slide" type="button" aria-label="Next slide">
+                      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" /></svg>
+                    </button>
+                  </div>
+                  <p class="proof-note" id="proof-note"></p>
                 </section>
 
-                <section class="panel words" aria-label="Quote and image size">
-                  <label class="field">
+                <section class="panel words" aria-label="Text and image size">
+                  <label class="field" data-mode-field="single">
                     <span class="field-label">Quote</span>
                     <textarea id="quote" rows="4" spellcheck="false"></textarea>
                     <span class="hint">Put *stars* around words to emphasise them</span>
+                  </label>
+                  <label class="field" data-mode-field="carousel" hidden>
+                    <span class="field-label">Title</span>
+                    <input id="carousel-title" type="text" placeholder="Optional, shown on slide 1" />
+                  </label>
+                  <label class="field field-source" data-mode-field="carousel" hidden>
+                    <span class="field-label">Subtitle</span>
+                    <input id="carousel-subtitle" type="text" placeholder="Optional, such as a byline" />
+                  </label>
+                  <label class="field" data-mode-field="carousel" hidden>
+                    <span class="field-label">Article</span>
+                    <textarea id="article" rows="8" spellcheck="false"></textarea>
+                    <span class="hint">*Stars* for italic, **two stars** for bold. Type [slide] on a line of its own to start a new slide.</span>
                   </label>
                   <div class="field">
                     <span class="field-label" id="highlight-label">Highlight</span>
                     <div class="highlight-row" id="highlights" role="group" aria-labelledby="highlight-label"></div>
                     <span class="hint" id="highlight-hint" aria-live="polite">Select words in Quote, then select a colour</span>
                   </div>
-                  <label class="field">
+                  <label class="field" data-mode-field="single">
                     <span class="field-label">Author</span>
                     <input id="author" type="text" placeholder="Optional" />
                   </label>
-                  <label class="field field-source">
+                  <label class="field field-source" data-mode-field="single">
                     <span class="field-label">Source</span>
                     <input id="source" type="text" placeholder="Optional, such as a book title" />
                   </label>
@@ -154,14 +181,14 @@
           <div>
             <h2>What you see is what saves</h2>
             <p>
-              The preview, the style thumbnails and the saved PNG all come from one renderer, so the file matches
-              the preview.
+              The preview, the style thumbnails and the saved files all come from one renderer, so every file
+              matches the preview.
             </p>
           </div>
           <div>
             <h2>Keeps everything in one folder</h2>
             <p>
-              Your styles and your last quote stay in a folder beside the app. Move the two together, for example
+              Your styles and your last work stay in a folder beside the app. Move the two together, for example
               to a USB drive.
             </p>
           </div>
@@ -197,12 +224,20 @@
 
           <div class="feature-grid">
             <div>
-              <h3>25+ preset styles</h3>
+              <h3>25+ quote styles</h3>
               <p>Five categories: Classic, Modern, Bold, Soft and Retro.</p>
             </div>
             <div>
+              <h3>Carousel mode</h3>
+              <p>Paste an article, and it splits into slides. The title goes on slide 1. Page numbers are added.</p>
+            </div>
+            <div>
+              <h3>Slide breaks where you want</h3>
+              <p>Paragraphs stay whole when they fit. Add a slide break to start a new slide at any point.</p>
+            </div>
+            <div>
               <h3>Fine-tune controls</h3>
-              <p>Change the text, author and source, background, quote mark, frame and layout.</p>
+              <p>Change the fonts, colours, spacing, background, frame and layout of any style.</p>
             </div>
             <div>
               <h3>Custom styles</h3>
@@ -217,12 +252,12 @@
               <p>Mark words with a band in one of 6 preset colours or a custom colour. Text stays readable on it.</p>
             </div>
             <div>
-              <h3>5 image sizes, 3 export scales</h3>
-              <p>Square, Portrait, Landscape, Story, or Custom from 200 to 6000 px per side, saved at 1x, 2x or 3x.</p>
+              <h3>Image sizes and scales</h3>
+              <p>Quotes: Square, Portrait, Landscape, Story or Custom. Carousels: Portrait, Square or Tall. Saved at 1x, 2x or 3x.</p>
             </div>
             <div>
               <h3>Text that fits</h3>
-              <p>Text shrinks automatically to fit the image. Empty author and source fields do not appear.</p>
+              <p>Quote text shrinks to fit the image. Carousel text keeps its size and moves on to the next slide.</p>
             </div>
             <div>
               <h3>Typographic characters</h3>
@@ -230,7 +265,11 @@
             </div>
             <div>
               <h3>Save or copy</h3>
-              <p>Save a PNG with Ctrl+S, or copy the image and paste it where you need it.</p>
+              <p>Save PNG or JPG with Ctrl+S, or copy the image and paste it where you need it.</p>
+            </div>
+            <div>
+              <h3>Save all slides</h3>
+              <p>Every slide of a carousel goes into a new folder, numbered in order. No file is replaced.</p>
             </div>
           </div>
         </div>

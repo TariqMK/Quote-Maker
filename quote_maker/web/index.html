@@ -17,33 +17,65 @@
         <h1 class="wordmark">Quote-Maker</h1>
         <span class="version" id="version"></span>
       </div>
+      <div class="segmented mode-switch" id="modes" role="radiogroup" aria-label="Mode">
+        <button type="button" role="radio" data-mode="single">Single image</button>
+        <button type="button" role="radio" data-mode="carousel">Carousel</button>
+      </div>
       <div class="topbar-actions">
         <span class="status" id="status" role="status" aria-live="polite"></span>
         <button class="button" id="copy-image" type="button">Copy image</button>
         <button class="button primary" id="save-image" type="button">Save image</button>
+        <button class="button primary" id="save-all" type="button" hidden>Save all slides</button>
       </div>
     </header>
 
     <main class="workspace">
-      <section class="panel words" aria-label="Quote and image size">
-        <label class="field">
-          <span class="field-label">Quote</span>
-          <textarea id="quote" rows="9" spellcheck="true" placeholder="Paste your text here"></textarea>
-          <span class="hint">Put *stars* around words to emphasise them</span>
-        </label>
+      <section class="panel words" aria-label="Text and image size">
+        <div class="mode-fields" id="fields-single">
+          <label class="field">
+            <span class="field-label">Quote</span>
+            <textarea id="quote" rows="9" spellcheck="true" placeholder="Paste your text here"></textarea>
+            <span class="hint">Put *stars* around words to emphasise them</span>
+          </label>
+        </div>
+        <div class="mode-fields" id="fields-carousel" hidden>
+          <label class="field">
+            <span class="field-label">Title</span>
+            <input id="carousel-title" type="text" placeholder="Optional, shown on slide 1" />
+          </label>
+          <label class="field">
+            <span class="field-label">Subtitle</span>
+            <input id="carousel-subtitle" type="text" placeholder="Optional, such as a byline" />
+          </label>
+          <div class="field">
+            <label class="field-label" for="article">Article</label>
+            <textarea id="article" rows="14" spellcheck="true" placeholder="Paste your article here"></textarea>
+            <div class="text-tools">
+              <button class="link" id="insert-break" type="button">Insert slide break</button>
+              <button class="link" id="open-text" type="button">Open text file</button>
+            </div>
+            <span class="hint">*Stars* for italic, **two stars** for bold</span>
+          </div>
+          <label class="check">
+            <input id="keep-breaks" type="checkbox" />
+            <span>Keep line breaks <span class="hint">for poems and lists</span></span>
+          </label>
+        </div>
         <div class="field">
           <span class="field-label" id="highlight-label">Highlight</span>
           <div class="highlight-row" id="highlights" role="group" aria-labelledby="highlight-label"></div>
-          <span class="hint">Select words in Quote, then select a colour</span>
+          <span class="hint" id="highlight-hint">Select words in Quote, then select a colour</span>
         </div>
-        <label class="field">
-          <span class="field-label">Author</span>
-          <input id="author" type="text" placeholder="Optional" />
-        </label>
-        <label class="field">
-          <span class="field-label">Source</span>
-          <input id="source" type="text" placeholder="Optional, such as a book title" />
-        </label>
+        <div class="mode-fields" id="fields-single-after">
+          <label class="field">
+            <span class="field-label">Author</span>
+            <input id="author" type="text" placeholder="Optional" />
+          </label>
+          <label class="field">
+            <span class="field-label">Source</span>
+            <input id="source" type="text" placeholder="Optional, such as a book title" />
+          </label>
+        </div>
 
         <div class="field">
           <span class="field-label" id="size-label">Image size</span>
@@ -58,13 +90,34 @@
           <span class="field-label" id="scale-label">Export scale</span>
           <div class="segmented" id="scales" role="radiogroup" aria-labelledby="scale-label"></div>
         </div>
+
+        <div class="field">
+          <span class="field-label" id="format-label">File type</span>
+          <div class="segmented" id="formats" role="radiogroup" aria-labelledby="format-label"></div>
+          <label class="control quality-row" id="quality-row" hidden>
+            <span>JPG quality</span>
+            <span class="control-range">
+              <input id="quality" type="range" min="60" max="100" step="1" />
+              <output id="quality-value"></output>
+            </span>
+          </label>
+        </div>
       </section>
 
-      <section class="stage" aria-label="Preview">
+      <section class="stage" id="stage" aria-label="Preview">
         <div class="proof">
           <span class="crop tl"></span><span class="crop tr"></span>
           <span class="crop bl"></span><span class="crop br"></span>
           <canvas id="preview"></canvas>
+        </div>
+        <div class="slide-bar" id="slide-bar" hidden>
+          <button class="step" id="prev-slide" type="button" aria-label="Previous slide" title="Previous slide (Left arrow)">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" /></svg>
+          </button>
+          <div class="filmstrip" id="filmstrip" role="group" aria-label="Slides"></div>
+          <button class="step" id="next-slide" type="button" aria-label="Next slide" title="Next slide (Right arrow)">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" /></svg>
+          </button>
         </div>
         <p class="proof-note" id="proof-note"></p>
       </section>

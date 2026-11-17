@@ -82,8 +82,9 @@ function balancedLines(widths, spaceWidth, maxWidth) {
   return breakLines(widths, spaceWidth, Math.min(high + 0.5, maxWidth), true);
 }
 
-// Lays out paragraphs at one size. wordWidth100 holds each paragraph's word widths at 100 px.
-function layoutAt(paragraphs, size, options) {
+// Lays out paragraphs at one size, with no shrinking. Each paragraph holds its word widths at 100 px
+// in widths100. fitText tries sizes with this. It is exported for layouts that keep one size.
+export function layoutAt(paragraphs, size, options) {
   const { maxWidth, lineHeight, paragraphGap, balance, space100 } = options;
   const scale = size / 100;
   const lines = [];

@@ -34,7 +34,7 @@ ICON_DIR = ASSETS / "icon"
 WEB_DIR = ASSETS.parent / "quote_maker" / "web"
 NAME = "quote-maker"
 APP_NAME = "Quote-Maker"
-TAGLINE = "Any words. Many styles. One image."
+TAGLINE = "Any words. Many styles."
 
 # Colours from the app's dark theme in quote_maker/web/styles.css.
 BACKGROUND = "#111112"  # --stage

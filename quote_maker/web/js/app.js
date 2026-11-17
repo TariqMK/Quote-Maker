@@ -1,55 +1,153 @@
-// Runs the Quote-Maker window: holds the current quote and style, and connects every control.
+// Runs the Quote-Maker window: holds the work for each mode, and connects every control.
+// Single image makes one quote image. Carousel splits an article into a set of slides.
 
 import * as bridge from "./bridge.js";
-import { renderControls, setPath } from "./controls.js";
+import { CAROUSEL_PRESETS, withCarouselDefaults } from "./carousel-presets.js";
+import { ensureCarouselFonts, layoutCarousel, renderSlide } from "./carousel.js";
+import { CAROUSEL_CONTROL_GROUPS, CONTROL_GROUPS, renderControls, setPath } from "./controls.js";
 import { CATEGORIES, PRESETS, mergeDeep, withDefaults } from "./presets.js";
 import { ensureFonts, renderQuote } from "./render.js";
-import { HIGHLIGHTS, applyHighlight, suggestFilename } from "./text.js";
+import { DEFAULT_MODE, buildSavedState, readSavedState } from "./state.js";
+import { HIGHLIGHTS, SLIDE_MARK, applyHighlight, cleanLine, stripHighlights, suggestFilename } from "./text.js";
 
-const SIZES = [
-  { id: "square", name: "Square", width: 1080, height: 1080 },
-  { id: "portrait", name: "Portrait", width: 1080, height: 1350 },
-  { id: "landscape", name: "Landscape", width: 1200, height: 675 },
-  { id: "story", name: "Story", width: 1080, height: 1920 },
-  { id: "custom", name: "Custom" },
-];
 const SCALES = [1, 2, 3];
+const FORMATS = [["png", "PNG"], ["jpg", "JPG"]];
+const QUALITY = { min: 60, max: 100 };
 const SIZE_LIMIT = { min: 200, max: 6000 };
 const MINE = "My styles";
 const WRITE_FAILED = "Could not write to the Quote-Maker Data folder. Move the app to a folder you can change.";
-const SAMPLE = { quote: "Paste your own *words* and make them look like they matter.", author: "Your name", source: "" };
 const THUMB = { quote: "Words *worth* keeping", author: "Author", source: "", size: 400, textScale: 1.7 };
+const CAROUSEL_THUMB = {
+  width: 320,
+  title: "Words worth keeping",
+  text: "Clear writing is a set of *small habits* that anyone can learn, one paragraph at a time.",
+};
+const FILM_HEIGHT = 128; // Thumbnail canvases are drawn at 2x their 64 px display height.
+
+const SAMPLE_ARTICLE = `Clear writing is not a talent. It is a set of *small habits* that anyone can learn.
+
+**Lead with the point.** Say the most important thing first, then explain it. Readers who stop early still leave with the idea.
+
+**Use short sentences.** One idea per sentence. If a sentence needs a second breath, split it.
+
+[slide]
+**Choose plain words.** Write *use*, not *utilise*. Write *help*, not *facilitate*.
+
+**Cut what does not earn its place.** Read each paragraph and ask whether the piece would miss it.
+
+**Read it aloud.** Your ear finds the clumsy line that your eye forgives.`;
+
+// What differs between the modes. The rest of this file works on whichever mode is open.
+const MODES = {
+  single: {
+    presets: PRESETS,
+    categories: CATEGORIES,
+    withDefaults,
+    controls: CONTROL_GROUPS,
+    ensureFonts,
+    sizes: [
+      { id: "square", name: "Square", width: 1080, height: 1080 },
+      { id: "portrait", name: "Portrait", width: 1080, height: 1350 },
+      { id: "landscape", name: "Landscape", width: 1200, height: 675 },
+      { id: "story", name: "Story", width: 1080, height: 1920 },
+      { id: "custom", name: "Custom" },
+    ],
+    // Text fields: the state key and the element id.
+    fields: { quote: "quote", author: "author", source: "source" },
+    highlightFields: ["quote"],
+    panels: ["fields-single", "fields-single-after"],
+    highlightHint: "Select words in Quote, then select a colour",
+    actions: { copy: "Copy image", save: "Save image" },
+    defaults: {
+      quote: "Paste your own *words* and make them look like they matter.",
+      author: "Your name",
+      source: "",
+      sizeId: "portrait",
+      customWidth: 1600,
+      customHeight: 900,
+      format: "png",
+      quality: 90,
+    },
+  },
+  carousel: {
+    presets: CAROUSEL_PRESETS,
+    categories: [],
+    withDefaults: withCarouselDefaults,
+    controls: CAROUSEL_CONTROL_GROUPS,
+    ensureFonts: ensureCarouselFonts,
+    sizes: [
+      { id: "portrait", name: "Portrait", width: 1080, height: 1350 },
+      { id: "square", name: "Square", width: 1080, height: 1080 },
+      { id: "tall", name: "Tall", width: 1080, height: 1440 },
+    ],
+    fields: { title: "carousel-title", subtitle: "carousel-subtitle", text: "article" },
+    highlightFields: ["article", "carousel-title", "carousel-subtitle"],
+    panels: ["fields-carousel"],
+    highlightHint: "Select words, then select a colour",
+    actions: { copy: "Copy slide", save: "Save slide" },
+    defaults: {
+      title: "Five habits of clear writing",
+      subtitle: "A short guide · 3 min read",
+      text: SAMPLE_ARTICLE,
+      keepLineBreaks: false,
+      sizeId: "portrait",
+      slide: 0,
+      format: "png",
+      quality: 90,
+    },
+  },
+};
+
+// The keys of each mode's work that are saved in state.json.
+const SAVED_KEYS = {
+  single: [
+    "quote", "author", "source", "sizeId", "customWidth", "customHeight", "scale", "format", "quality",
+    "styleId", "style", "edited",
+  ],
+  carousel: [
+    "title", "subtitle", "text", "keepLineBreaks", "sizeId", "scale", "format", "quality",
+    "styleId", "style", "edited", "slide",
+  ],
+};
 
 const $ = (id) => document.getElementById(id);
 
-const state = {
-  quote: SAMPLE.quote,
-  author: SAMPLE.author,
-  source: SAMPLE.source,
-  sizeId: "portrait",
-  customWidth: 1600,
-  customHeight: 900,
-  scale: 1,
-  styleId: PRESETS[0].id,
-  style: null, // The working copy, including any edits.
-  edited: false,
-};
-let customStyles = [];
-let filter = "All";
+let mode = DEFAULT_MODE;
+const work = {};
+const customStyles = { single: [], carousel: [] };
+const filters = { single: "All", carousel: "All" };
+const lastHighlightField = { single: "quote", carousel: "article" };
+let carouselLayout = null;
 let renderToken = 0;
 let framePending = false;
 let saveTimer = null;
+let exporting = false;
+const measureContext = document.createElement("canvas").getContext("2d");
 
-const allStyles = () => [...PRESETS, ...customStyles];
+const config = () => MODES[mode];
+const state = () => work[mode];
+const allStyles = () => [...config().presets, ...customStyles[mode]];
 const findStyle = (id) => allStyles().find((s) => s.id === id);
-const isCustom = (id) => customStyles.some((s) => s.id === id);
-const clone = (style) => mergeDeep(withDefaults(style), {});
+const isCustom = (id) => customStyles[mode].some((s) => s.id === id);
+const clone = (style) => mergeDeep(config().withDefaults(style), {});
+
+function freshWork(name) {
+  const modeConfig = MODES[name];
+  return {
+    ...modeConfig.defaults,
+    scale: 1,
+    styleId: modeConfig.presets[0].id,
+    style: mergeDeep(modeConfig.withDefaults(modeConfig.presets[0]), {}),
+    edited: false,
+  };
+}
 
 function imageSize() {
-  const size = SIZES.find((s) => s.id === state.sizeId);
+  const current = state();
+  const size = config().sizes.find((s) => s.id === current.sizeId) ?? config().sizes[0];
   if (size.id !== "custom") return { width: size.width, height: size.height };
   const clamp = (value) => Math.min(SIZE_LIMIT.max, Math.max(SIZE_LIMIT.min, Number(value) || 1080));
-  return { width: clamp(state.customWidth), height: clamp(state.customHeight) };
+  return { width: clamp(current.customWidth), height: clamp(current.customHeight) };
 }
 
 function setStatus(text) {
@@ -63,58 +161,205 @@ function requestRender() {
   requestAnimationFrame(async () => {
     framePending = false;
     const token = ++renderToken;
-    await ensureFonts(state.style);
+    await config().ensureFonts(state().style);
     if (token !== renderToken) return;
-    drawPreview();
+    if (mode === "carousel") drawCarousel();
+    else drawQuote();
   });
 }
 
-function drawPreview() {
-  const { width, height } = imageSize();
-  const canvas = $("preview");
+function sizeCanvas(canvas, width, height) {
   if (canvas.width !== width || canvas.height !== height) {
     canvas.width = width;
     canvas.height = height;
   }
-  const result = renderQuote(canvas.getContext("2d"), { ...renderInput(), width, height });
+}
+
+function quoteInput() {
+  const { quote, author, source, style } = state();
+  return { quote, author, source, style };
+}
+
+function drawQuote() {
+  const { width, height } = imageSize();
+  const canvas = $("preview");
+  sizeCanvas(canvas, width, height);
+  const result = renderQuote(canvas.getContext("2d"), { ...quoteInput(), width, height });
   const note = `${width} × ${height} px`;
   $("proof-note").textContent = result.fittedDown
     ? `${note}  ·  text reduced to size ${Math.round(result.fontSize)} to fit`
     : note;
 }
 
-function renderInput() {
-  return { quote: state.quote, author: state.author, source: state.source, style: state.style };
+// Carousel preview: lays the text out once, then draws the open slide and the filmstrip.
+function drawCarousel() {
+  const { width, height } = imageSize();
+  const current = state();
+  carouselLayout = layoutCarousel(measureContext, {
+    width,
+    height,
+    title: current.title,
+    subtitle: current.subtitle,
+    text: current.text,
+    keepLineBreaks: current.keepLineBreaks,
+    style: current.style,
+  });
+  current.slide = Math.min(Math.max(0, current.slide), carouselLayout.slides.length - 1);
+  drawFilmstrip();
+  drawSlide();
 }
 
-function exportCanvas() {
+function drawSlide() {
+  const { width, height } = carouselLayout;
+  const canvas = $("preview");
+  sizeCanvas(canvas, width, height);
+  renderSlide(canvas.getContext("2d"), carouselLayout, state().slide);
+
+  const total = carouselLayout.slides.length;
+  const index = state().slide;
+  const overflow = carouselLayout.slides.findIndex((s) => s.overflow);
+  let note = `Slide ${index + 1} of ${total}  ·  ${width} × ${height} px`;
+  if (overflow >= 0) note += `  ·  text too large for slide ${overflow + 1}`;
+  $("proof-note").textContent = note;
+  $("prev-slide").disabled = index === 0;
+  $("next-slide").disabled = index === total - 1;
+  $("filmstrip").querySelectorAll(".thumb").forEach((thumb, i) => {
+    thumb.setAttribute("aria-current", String(i === index));
+  });
+  $("filmstrip").children[index]?.scrollIntoView({ block: "nearest", inline: "nearest" });
+}
+
+function drawFilmstrip() {
+  const strip = $("filmstrip");
+  const { width, height, slides } = carouselLayout;
+  // Thumbnails are reused while the slide count stays the same, so typing does not rebuild them.
+  while (strip.children.length > slides.length) strip.lastElementChild.remove();
+  while (strip.children.length < slides.length) {
+    const i = strip.children.length;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "thumb";
+    button.append(document.createElement("canvas"));
+    button.addEventListener("click", () => goToSlide(i));
+    strip.append(button);
+  }
+  const scale = FILM_HEIGHT / height;
+  [...strip.children].forEach((button, i) => {
+    button.setAttribute("aria-label", `Slide ${i + 1} of ${slides.length}`);
+    button.title = `Slide ${i + 1}`;
+    const canvas = button.firstElementChild;
+    sizeCanvas(canvas, Math.round(width * scale), FILM_HEIGHT);
+    renderSlide(canvas.getContext("2d"), carouselLayout, i, scale);
+  });
+}
+
+function goToSlide(index) {
+  if (!carouselLayout) return;
+  const next = Math.min(Math.max(0, index), carouselLayout.slides.length - 1);
+  if (next === state().slide) return;
+  state().slide = next;
+  drawSlide();
+  persist();
+}
+
+// Export: a slide (the open one unless given) or the quote image, at the chosen scale.
+function exportCanvas(slide = state().slide) {
   const { width, height } = imageSize();
+  const scale = state().scale;
   const canvas = document.createElement("canvas");
-  canvas.width = width * state.scale;
-  canvas.height = height * state.scale;
-  renderQuote(canvas.getContext("2d"), { ...renderInput(), width: canvas.width, height: canvas.height });
+  canvas.width = width * scale;
+  canvas.height = height * scale;
+  if (mode === "carousel") {
+    renderSlide(canvas.getContext("2d"), carouselLayout, slide, scale);
+  } else {
+    renderQuote(canvas.getContext("2d"), { ...quoteInput(), width: canvas.width, height: canvas.height });
+  }
   return canvas;
 }
 
+// The image in the chosen file type. JPG files are smaller; PNG keeps every pixel exact.
+function encode(canvas, { format, quality } = state()) {
+  return format === "jpg" ? canvas.toDataURL("image/jpeg", quality / 100) : canvas.toDataURL("image/png");
+}
+
+const slideBase = () => suggestFilename(state().title || state().text, "");
+const slideName = (index) => `${slideBase()}-${String(index + 1).padStart(2, "0")}`;
+
+function exportName() {
+  const current = state();
+  return mode === "carousel" ? slideName(current.slide) : suggestFilename(current.quote, current.author);
+}
+
+// Stops a second save from starting while slides are still being written.
+function setExporting(busy) {
+  exporting = busy;
+  for (const id of ["save-image", "save-all", "copy-image"]) $(id).disabled = busy;
+}
+
+async function ready() {
+  await config().ensureFonts(state().style);
+  if (mode === "carousel" && !carouselLayout) drawCarousel();
+}
+
 async function saveImage() {
-  await ensureFonts(state.style);
+  if (exporting) return;
+  await ready();
   try {
-    const path = await bridge.saveImage(
-      exportCanvas().toDataURL("image/png"),
-      suggestFilename(state.quote, state.author),
-    );
+    const path = await bridge.saveImage(encode(exportCanvas()), exportName());
     if (path) setStatus(`Saved ${path}`);
   } catch (error) {
     setStatus(`Could not save the image: ${error.message ?? error}`);
   }
 }
 
+// Saves every slide into a new folder named after the title. Existing files are never replaced.
+async function saveAllSlides() {
+  if (exporting) return;
+  await ready();
+  // Settings are fixed when the save starts, so a change made meanwhile cannot mix two sizes.
+  const layout = carouselLayout;
+  const total = layout.slides.length;
+  const { scale, format, quality } = state();
+  const names = layout.slides.map((_, index) => slideName(index));
+  const slideCanvas = (index) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = layout.width * scale;
+    canvas.height = layout.height * scale;
+    renderSlide(canvas.getContext("2d"), layout, index, scale);
+    return canvas;
+  };
+  const folderName = cleanLine(stripHighlights(state().title)).replace(/\*/g, "").trim() || slideBase();
+  let folder;
+  try {
+    folder = await bridge.chooseExportFolder(folderName);
+  } catch (error) {
+    setStatus(`Could not make the folder: ${error.message ?? error}`);
+    return;
+  }
+  if (!folder) return;
+  setExporting(true);
+  let index = 0;
+  try {
+    for (; index < total; index += 1) {
+      setStatus(`Saving slide ${index + 1} of ${total}`);
+      await bridge.saveExportImage(encode(slideCanvas(index), { format, quality }), names[index]);
+      // Let the window redraw between slides, so the status stays current.
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+    setStatus(`Saved ${total} ${total === 1 ? "slide" : "slides"} to ${folder}`);
+  } catch (error) {
+    setStatus(`Could not save slide ${index + 1}: ${error.message ?? error}`);
+  } finally {
+    setExporting(false);
+  }
+}
+
 async function copyImage() {
-  await ensureFonts(state.style);
+  await ready();
   try {
     const blob = await new Promise((resolve) => exportCanvas().toBlob(resolve, "image/png"));
     await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-    setStatus("Image copied");
+    setStatus(mode === "carousel" ? `Slide ${state().slide + 1} copied` : "Image copied");
   } catch (error) {
     setStatus(`Could not copy the image: ${error.message ?? error}`);
   }
@@ -123,10 +368,8 @@ async function copyImage() {
 function persist() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    const { quote, author, source, sizeId, customWidth, customHeight, scale, styleId, style, edited } = state;
-    bridge
-      .saveState({ quote, author, source, sizeId, customWidth, customHeight, scale, styleId, style, edited })
-      .catch(() => setStatus(WRITE_FAILED));
+    const pick = (name) => Object.fromEntries(SAVED_KEYS[name].map((key) => [key, work[name][key]]));
+    bridge.saveState(buildSavedState(mode, pick("single"), pick("carousel"))).catch(() => setStatus(WRITE_FAILED));
   }, 500);
 }
 
@@ -137,28 +380,32 @@ function changed() {
 
 // Left panel
 
-// Applies a colour to the words selected in Quote. A null colour removes the highlight.
+// Applies a colour to the words selected in the last text field used. A null colour removes it.
 function highlightSelection(color) {
-  const field = $("quote");
+  const field = $(lastHighlightField[mode]);
   const result = applyHighlight(field.value, field.selectionStart, field.selectionEnd, color);
   if (!result) {
-    setStatus("Select words in Quote first");
+    setStatus("Select words first");
     return;
   }
   setStatus("");
-  field.focus();
-  field.select();
-  // insertText keeps Ctrl+Z working and sends the input event that updates the preview.
-  if (!document.execCommand("insertText", false, result.text)) {
-    field.value = result.text;
-    field.dispatchEvent(new Event("input", { bubbles: true }));
-  }
+  replaceFieldText(field, result.text);
   // The selection stays on the words, so another colour can be tried straight away.
   field.setSelectionRange(result.start, result.end);
 }
 
+// Replaces all text in a field. insertText keeps Ctrl+Z working and sends the input event.
+function replaceFieldText(field, text) {
+  field.focus();
+  field.select();
+  if (!document.execCommand("insertText", false, text)) {
+    field.value = text;
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+}
+
 function renderHighlights() {
-  // The selection in Quote must stay in place while a colour button is pressed.
+  // The selection in the text field must stay in place while a colour button is pressed.
   const keepSelection = (event) => event.preventDefault();
   const swatches = Object.entries(HIGHLIGHTS).map(([name, color]) => {
     const button = document.createElement("button");
@@ -189,15 +436,57 @@ function renderHighlights() {
   $("highlights").replaceChildren(...swatches, custom, clear);
 }
 
+// Puts [slide] on a line of its own at the cursor.
+function insertSlideBreak() {
+  const field = $("article");
+  field.focus();
+  const { selectionStart: start, selectionEnd: end, value } = field;
+  const before = value.slice(0, start);
+  const after = value.slice(end);
+  const insert = `${before && !before.endsWith("\n") ? "\n" : ""}${SLIDE_MARK}${after.startsWith("\n") ? "" : "\n"}`;
+  if (!document.execCommand("insertText", false, insert)) {
+    field.setRangeText(insert, start, end, "end");
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+}
+
+async function openTextFile() {
+  let file;
+  try {
+    file = await bridge.openTextFile();
+  } catch (error) {
+    setStatus(`Could not open the file: ${error.message ?? error}`);
+    return;
+  }
+  if (!file) return;
+  const current = state();
+  if (current.text.trim() && current.text !== SAMPLE_ARTICLE) {
+    const confirmed = await askDialog({
+      title: "Replace the article?",
+      text: `The text of ${file.name} replaces the text in Article. Ctrl+Z in Article brings it back.`,
+      confirm: "Replace",
+    });
+    if (!confirmed) return;
+  }
+  replaceFieldText($("article"), file.text);
+  if (!current.title.trim() || current.title === MODES.carousel.defaults.title) {
+    $("carousel-title").value = file.name;
+    current.title = file.name;
+  }
+  current.slide = 0;
+  setStatus(`Opened ${file.name}`);
+  changed();
+}
+
 function renderSizes() {
-  const list = $("sizes");
-  list.replaceChildren(
-    ...SIZES.map((size) => {
+  const current = state();
+  $("sizes").replaceChildren(
+    ...config().sizes.map((size) => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "size-option";
       button.setAttribute("role", "radio");
-      button.setAttribute("aria-checked", String(size.id === state.sizeId));
+      button.setAttribute("aria-checked", String(size.id === current.sizeId));
       const name = document.createElement("span");
       name.textContent = size.name;
       button.append(name);
@@ -207,16 +496,40 @@ function renderSizes() {
         button.append(pixels);
       }
       button.addEventListener("click", () => {
-        state.sizeId = size.id;
+        current.sizeId = size.id;
         renderSizes();
         changed();
       });
       return button;
     }),
   );
-  $("custom-size").hidden = state.sizeId !== "custom";
-  $("custom-width").value = state.customWidth;
-  $("custom-height").value = state.customHeight;
+  $("custom-size").hidden = current.sizeId !== "custom";
+  if (mode === "single") {
+    $("custom-width").value = current.customWidth;
+    $("custom-height").value = current.customHeight;
+  }
+}
+
+function renderFormats() {
+  const current = state();
+  $("formats").replaceChildren(
+    ...FORMATS.map(([format, label]) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.setAttribute("role", "radio");
+      button.setAttribute("aria-checked", String(format === current.format));
+      button.textContent = label;
+      button.addEventListener("click", () => {
+        current.format = format;
+        renderFormats();
+        persist();
+      });
+      return button;
+    }),
+  );
+  $("quality-row").hidden = current.format !== "jpg";
+  $("quality").value = current.quality;
+  $("quality-value").textContent = current.quality;
 }
 
 function renderScales() {
@@ -225,10 +538,10 @@ function renderScales() {
       const button = document.createElement("button");
       button.type = "button";
       button.setAttribute("role", "radio");
-      button.setAttribute("aria-checked", String(scale === state.scale));
+      button.setAttribute("aria-checked", String(scale === state().scale));
       button.textContent = `${scale}x`;
       button.addEventListener("click", () => {
-        state.scale = scale;
+        state().scale = scale;
         renderScales();
         persist();
       });
@@ -240,15 +553,16 @@ function renderScales() {
 // Right panel
 
 function renderFilters() {
+  const names = ["All", ...config().categories, MINE];
   $("filters").replaceChildren(
-    ...["All", ...CATEGORIES, MINE].map((name) => {
+    ...names.map((name) => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "filter";
       button.textContent = name;
-      button.setAttribute("aria-pressed", String(name === filter));
+      button.setAttribute("aria-pressed", String(name === filters[mode]));
       button.addEventListener("click", () => {
-        filter = name;
+        filters[mode] = name;
         renderFilters();
         renderGallery();
       });
@@ -258,9 +572,10 @@ function renderFilters() {
 }
 
 function visibleStyles() {
+  const filter = filters[mode];
   if (filter === "All") return allStyles();
-  if (filter === MINE) return customStyles;
-  return PRESETS.filter((p) => p.category === filter);
+  if (filter === MINE) return customStyles[mode];
+  return config().presets.filter((p) => p.category === filter);
 }
 
 async function drawThumbnail(canvas, style) {
@@ -281,16 +596,36 @@ async function drawThumbnail(canvas, style) {
   });
 }
 
+async function drawCarouselThumbnail(canvas, style) {
+  await ensureCarouselFonts(style);
+  canvas.width = CAROUSEL_THUMB.width;
+  canvas.height = (CAROUSEL_THUMB.width * 5) / 4;
+  const enlarged = mergeDeep(style, {
+    title: { size: style.title.size * 1.4 },
+    body: { size: style.body.size * 1.9 },
+  });
+  const layout = layoutCarousel(measureContext, {
+    width: 1080,
+    height: 1350,
+    title: CAROUSEL_THUMB.title,
+    text: CAROUSEL_THUMB.text,
+    style: enlarged,
+  });
+  renderSlide(canvas.getContext("2d"), layout, 0, CAROUSEL_THUMB.width / 1080);
+}
+
 function renderGallery() {
   const styles = visibleStyles();
-  $("gallery-empty").hidden = !(filter === MINE && styles.length === 0);
+  const draw = mode === "carousel" ? drawCarouselThumbnail : drawThumbnail;
+  $("gallery").classList.toggle("portrait", mode === "carousel");
+  $("gallery-empty").hidden = !(filters[mode] === MINE && styles.length === 0);
   const items = styles.map((raw) => {
-    const style = withDefaults(raw);
+    const style = config().withDefaults(raw);
     const button = document.createElement("button");
     button.type = "button";
     button.className = "swatch";
     button.dataset.styleId = raw.id;
-    button.setAttribute("aria-pressed", String(raw.id === state.styleId));
+    button.setAttribute("aria-pressed", String(raw.id === state().styleId));
     const canvas = document.createElement("canvas");
     canvas.setAttribute("aria-hidden", "true");
     const label = document.createElement("span");
@@ -304,7 +639,7 @@ function renderGallery() {
   (async () => {
     for (const item of items) {
       if (!item.button.isConnected) return;
-      await drawThumbnail(item.canvas, item.style);
+      await draw(item.canvas, item.style);
       await new Promise((resolve) => requestAnimationFrame(resolve));
     }
   })();
@@ -312,26 +647,27 @@ function renderGallery() {
 
 function markSelected() {
   document.querySelectorAll(".swatch").forEach((button) => {
-    button.setAttribute("aria-pressed", String(button.dataset.styleId === state.styleId));
+    button.setAttribute("aria-pressed", String(button.dataset.styleId === state().styleId));
   });
 }
 
 function renderCurrent() {
-  const base = findStyle(state.styleId);
-  $("style-name").textContent = state.style.name ?? base?.name ?? "";
-  $("style-edited").hidden = !state.edited;
-  $("reset-style").hidden = !state.edited;
-  $("update-style").hidden = !(state.edited && isCustom(state.styleId));
-  $("delete-style").hidden = !isCustom(state.styleId);
+  const current = state();
+  const base = findStyle(current.styleId);
+  $("style-name").textContent = current.style.name ?? base?.name ?? "";
+  $("style-edited").hidden = !current.edited;
+  $("reset-style").hidden = !current.edited;
+  $("update-style").hidden = !(current.edited && isCustom(current.styleId));
+  $("delete-style").hidden = !isCustom(current.styleId);
 }
 
 function renderTune() {
-  renderControls($("pane-tune"), state.style, onControlChange);
+  renderControls($("pane-tune"), state().style, onControlChange, config().controls);
 }
 
 function onControlChange(path, value, structural) {
-  setPath(state.style, path, value);
-  state.edited = true;
+  setPath(state().style, path, value);
+  state().edited = true;
   renderCurrent();
   if (structural) renderTune();
   changed();
@@ -340,9 +676,10 @@ function onControlChange(path, value, structural) {
 function selectStyle(id) {
   const style = findStyle(id);
   if (!style) return;
-  state.styleId = id;
-  state.style = clone(style);
-  state.edited = false;
+  const current = state();
+  current.styleId = id;
+  current.style = clone(style);
+  current.edited = false;
   markSelected();
   renderCurrent();
   renderTune();
@@ -395,25 +732,26 @@ function askDialog({ title, text = "", confirm, input = null }) {
 }
 
 async function saveAsNew() {
+  const current = state();
   const name = await askDialog({
     title: "Save as a new style",
     confirm: "Save style",
-    input: `${state.style.name ?? "My style"} copy`,
+    input: `${current.style.name ?? "My style"} copy`,
   });
   if (!name) return;
-  const { id: _id, category: _category, ...values } = state.style;
+  const { id: _id, category: _category, ...values } = current.style;
   let saved;
   try {
-    saved = await bridge.saveStyle({ ...values, name });
+    saved = await bridge.saveStyle({ ...values, name }, mode);
   } catch {
     setStatus(WRITE_FAILED);
     return;
   }
-  customStyles = await bridge.listStyles();
-  state.styleId = saved.id;
-  state.style = clone(saved);
-  state.edited = false;
-  filter = MINE;
+  customStyles[mode] = await bridge.listStyles(mode);
+  current.styleId = saved.id;
+  current.style = clone(saved);
+  current.edited = false;
+  filters[mode] = MINE;
   renderFilters();
   renderGallery();
   renderCurrent();
@@ -423,16 +761,17 @@ async function saveAsNew() {
 }
 
 async function updateCustom() {
+  const current = state();
   let saved;
   try {
-    saved = await bridge.saveStyle({ ...state.style, id: state.styleId });
+    saved = await bridge.saveStyle({ ...current.style, id: current.styleId }, mode);
   } catch {
     setStatus(WRITE_FAILED);
     return;
   }
-  customStyles = await bridge.listStyles();
-  state.style = clone(saved);
-  state.edited = false;
+  customStyles[mode] = await bridge.listStyles(mode);
+  current.style = clone(saved);
+  current.edited = false;
   renderGallery();
   renderCurrent();
   setStatus(`Updated style ${saved.name}`);
@@ -440,7 +779,7 @@ async function updateCustom() {
 }
 
 async function deleteCustom() {
-  const style = findStyle(state.styleId);
+  const style = findStyle(state().styleId);
   const confirmed = await askDialog({
     title: `Delete ${style.name}?`,
     text: "This removes the saved style. You cannot undo this.",
@@ -448,65 +787,152 @@ async function deleteCustom() {
   });
   if (!confirmed) return;
   try {
-    await bridge.deleteStyle(style.id);
+    await bridge.deleteStyle(style.id, mode);
   } catch {
     setStatus(WRITE_FAILED);
     return;
   }
-  customStyles = await bridge.listStyles();
+  customStyles[mode] = await bridge.listStyles(mode);
   renderGallery();
-  selectStyle(PRESETS[0].id);
+  selectStyle(config().presets[0].id);
   setStatus(`Deleted style ${style.name}`);
 }
 
-function bindEvents() {
-  for (const key of ["quote", "author", "source"]) {
-    $(key).addEventListener("input", (event) => {
-      state[key] = event.target.value;
-      changed();
+// Modes
+
+function setMode(next) {
+  if (next === mode || !MODES[next] || exporting) return;
+  mode = next;
+  carouselLayout = null;
+  setStatus("");
+  renderAll();
+  persist();
+}
+
+function renderMode() {
+  document.querySelectorAll("#modes [data-mode]").forEach((button) => {
+    button.setAttribute("aria-checked", String(button.dataset.mode === mode));
+  });
+  for (const [name, modeConfig] of Object.entries(MODES)) {
+    modeConfig.panels.forEach((id) => {
+      $(id).hidden = name !== mode;
     });
+  }
+  const carousel = mode === "carousel";
+  $("stage").classList.toggle("carousel", carousel);
+  $("slide-bar").hidden = !carousel;
+  if (!carousel) $("filmstrip").replaceChildren();
+  $("highlight-hint").textContent = config().highlightHint;
+  $("copy-image").textContent = config().actions.copy;
+  $("save-image").textContent = config().actions.save;
+  // In Carousel, Save all slides is the main action and Save slide is a second choice.
+  $("save-all").hidden = !carousel;
+  $("save-image").classList.toggle("primary", !carousel);
+}
+
+// True while the user types in a field, so the arrow keys keep their usual job there.
+const isTyping = (target) => !!target.closest?.("input, textarea, select, [contenteditable]");
+
+function bindEvents() {
+  for (const [name, modeConfig] of Object.entries(MODES)) {
+    for (const [key, id] of Object.entries(modeConfig.fields)) {
+      $(id).addEventListener("input", (event) => {
+        work[name][key] = event.target.value;
+        changed();
+      });
+    }
+    for (const id of modeConfig.highlightFields) {
+      $(id).addEventListener("focus", () => {
+        lastHighlightField[name] = id;
+      });
+    }
   }
   for (const [id, key] of [["custom-width", "customWidth"], ["custom-height", "customHeight"]]) {
     $(id).addEventListener("input", (event) => {
-      state[key] = event.target.value;
+      work.single[key] = event.target.value;
       changed();
     });
   }
+  $("keep-breaks").addEventListener("change", (event) => {
+    work.carousel.keepLineBreaks = event.target.checked;
+    changed();
+  });
+  document.querySelectorAll("#modes [data-mode]").forEach((button) => {
+    button.addEventListener("click", () => setMode(button.dataset.mode));
+  });
+  $("insert-break").addEventListener("click", insertSlideBreak);
+  $("open-text").addEventListener("click", openTextFile);
+  $("prev-slide").addEventListener("click", () => goToSlide(state().slide - 1));
+  $("next-slide").addEventListener("click", () => goToSlide(state().slide + 1));
   $("save-image").addEventListener("click", saveImage);
+  $("save-all").addEventListener("click", saveAllSlides);
+  $("quality").addEventListener("input", (event) => {
+    state().quality = Number(event.target.value);
+    $("quality-value").textContent = event.target.value;
+    persist();
+  });
   $("copy-image").addEventListener("click", copyImage);
   $("tab-styles").addEventListener("click", () => showTab("styles"));
   $("tab-tune").addEventListener("click", () => showTab("tune"));
-  $("reset-style").addEventListener("click", () => selectStyle(state.styleId));
+  $("reset-style").addEventListener("click", () => selectStyle(state().styleId));
   $("save-style").addEventListener("click", saveAsNew);
   $("update-style").addEventListener("click", updateCustom);
   $("delete-style").addEventListener("click", deleteCustom);
   document.addEventListener("keydown", (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
       event.preventDefault();
-      saveImage();
+      if (mode === "carousel") saveAllSlides();
+      else saveImage();
+      return;
     }
+    if (mode !== "carousel" || !carouselLayout || isTyping(event.target)) return;
+    if (event.ctrlKey || event.metaKey || event.altKey || $("dialog").open) return;
+    const moves = {
+      ArrowLeft: -1,
+      ArrowRight: 1,
+      PageUp: -1,
+      PageDown: 1,
+      Home: -Infinity,
+      End: Infinity,
+    };
+    if (!(event.key in moves)) return;
+    event.preventDefault();
+    const step = moves[event.key];
+    goToSlide(Number.isFinite(step) ? state().slide + step : step < 0 ? 0 : carouselLayout.slides.length - 1);
   });
 }
 
-function applySavedState(saved) {
-  for (const key of ["quote", "author", "source", "customWidth", "customHeight"]) {
-    if (saved[key] !== undefined) state[key] = saved[key];
+function applySavedWork(name, saved) {
+  const target = work[name];
+  const modeConfig = MODES[name];
+  for (const key of Object.keys(modeConfig.defaults)) {
+    if (key === "sizeId" || saved[key] === undefined) continue;
+    // The custom size fields save what was typed, which can be a string.
+    const numeric = ["customWidth", "customHeight"].includes(key) && ["string", "number"].includes(typeof saved[key]);
+    if (numeric || typeof saved[key] === typeof modeConfig.defaults[key]) target[key] = saved[key];
   }
-  if (SIZES.some((s) => s.id === saved.sizeId)) state.sizeId = saved.sizeId;
-  if (SCALES.includes(saved.scale)) state.scale = saved.scale;
-  if (findStyle(saved.styleId)) {
-    state.styleId = saved.styleId;
-    state.style = clone(saved.edited && saved.style ? saved.style : findStyle(saved.styleId));
-    state.edited = !!saved.edited;
+  if (modeConfig.sizes.some((s) => s.id === saved.sizeId)) target.sizeId = saved.sizeId;
+  if (SCALES.includes(saved.scale)) target.scale = saved.scale;
+  if (!FORMATS.some(([format]) => format === target.format)) target.format = modeConfig.defaults.format;
+  target.quality = Math.min(QUALITY.max, Math.max(QUALITY.min, Math.round(Number(target.quality)) || 90));
+  const all = [...modeConfig.presets, ...customStyles[name]];
+  const base = all.find((s) => s.id === saved.styleId);
+  if (base) {
+    target.styleId = saved.styleId;
+    target.style = mergeDeep(modeConfig.withDefaults(saved.edited && saved.style ? saved.style : base), {});
+    target.edited = !!saved.edited;
   }
 }
 
 function renderAll() {
-  $("quote").value = state.quote;
-  $("author").value = state.author;
-  $("source").value = state.source;
+  for (const [name, modeConfig] of Object.entries(MODES)) {
+    for (const [key, id] of Object.entries(modeConfig.fields)) $(id).value = work[name][key];
+  }
+  $("keep-breaks").checked = work.carousel.keepLineBreaks;
+  renderMode();
   renderSizes();
   renderScales();
+  renderFormats();
   renderFilters();
   renderGallery();
   renderCurrent();
@@ -515,15 +941,20 @@ function renderAll() {
 }
 
 async function start() {
-  state.style = clone(PRESETS[0]);
+  work.single = freshWork("single");
+  work.carousel = freshWork("carousel");
   bindEvents();
   renderHighlights();
   showTab("styles");
   renderAll(); // Show the window content straight away, then restore saved work.
   await bridge.connect();
   $("version").textContent = `v${await bridge.getVersion()}`;
-  customStyles = await bridge.listStyles();
-  applySavedState(await bridge.loadState());
+  customStyles.single = await bridge.listStyles("single");
+  customStyles.carousel = await bridge.listStyles("carousel");
+  const saved = readSavedState(await bridge.loadState());
+  applySavedWork("single", saved.single);
+  applySavedWork("carousel", saved.carousel);
+  mode = saved.mode;
   renderAll();
 }
 

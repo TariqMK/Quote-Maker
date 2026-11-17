@@ -17,7 +17,16 @@ DOCS = ROOT / "docs"
 ENGINE = DOCS / "engine"
 
 # The modules the demo uses. The rest of the app's scripts need the Python window.
-ENGINE_SCRIPTS = ["fonts.js", "layout.js", "presets.js", "render.js", "text.js"]
+ENGINE_SCRIPTS = [
+    "carousel.js",
+    "carousel-presets.js",
+    "fonts.js",
+    "layout.js",
+    "paint.js",
+    "presets.js",
+    "render.js",
+    "text.js",
+]
 
 BRAND_FILES = {
     ROOT / "assets" / "icon" / "quote-maker.svg": DOCS / "icon.svg",
