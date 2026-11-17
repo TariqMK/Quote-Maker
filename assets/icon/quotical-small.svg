@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <title>Quote-Maker, simplified for 16, 20, 24 and 32 px</title>
+  <title>Quotical, simplified for 16, 20, 24 and 32 px</title>
   <rect x="16" y="16" width="992" height="992" rx="190" fill="#18181a"/>
   <path d="M390 150H150V390M634 874H874V634" fill="none" stroke="#eeeeec" stroke-width="128"/>
   <g fill="#ef6a48">

@@ -3,10 +3,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { FONTS } from "../quote_maker/web/js/fonts.js";
-import { breakLines, fitText, layoutAt, readableInk } from "../quote_maker/web/js/layout.js";
-import { DEFAULT_STYLE, PRESETS, withDefaults } from "../quote_maker/web/js/presets.js";
-import { buildSavedState, readSavedState } from "../quote_maker/web/js/state.js";
+import { FONTS } from "../quotical/web/js/fonts.js";
+import { breakLines, fitText, layoutAt, readableInk } from "../quotical/web/js/layout.js";
+import { DEFAULT_STYLE, PRESETS, withDefaults } from "../quotical/web/js/presets.js";
+import { buildSavedState, readSavedState } from "../quotical/web/js/state.js";
 import {
   HIGHLIGHTS,
   applyHighlight,
@@ -15,7 +15,7 @@ import {
   parseParagraphs,
   stripHighlights,
   suggestFilename,
-} from "../quote_maker/web/js/text.js";
+} from "../quotical/web/js/text.js";
 
 const partsOf = (text) =>
   parseParagraphs(text).flatMap((p) => p.words.map((w) => w.parts.map((x) => [x.text, x.hl])));

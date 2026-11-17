@@ -8,7 +8,9 @@ import uuid
 from pathlib import Path
 
 MAX_NAME_LENGTH = 60
-DATA_FOLDER_NAME = "Quote-Maker Data"
+DATA_FOLDER_NAME = "Quotical Data"
+# The folder's name before the app was renamed. An old folder beside the app is renamed on first run.
+OLD_DATA_FOLDER_NAME = "Quote-Maker Data"
 # Each mode keeps its saved styles in its own file, because the two kinds of style differ.
 STYLE_FILES = {"single": "styles.json", "carousel": "carousel-styles.json"}
 
@@ -19,14 +21,33 @@ def data_dir() -> Path:
     A packaged app keeps it beside the executable, or beside the .app bundle on macOS.
     A source run keeps it in the project folder.
     """
+    return adopt_old_folder(_app_home() / DATA_FOLDER_NAME)
+
+
+def _app_home() -> Path:
     if not getattr(sys, "frozen", False):
-        return Path(__file__).resolve().parent.parent / DATA_FOLDER_NAME
+        return Path(__file__).resolve().parent.parent
     executable = Path(sys.executable).resolve()
     if sys.platform == "darwin":
         for parent in executable.parents:
             if parent.suffix == ".app":
-                return parent.parent / DATA_FOLDER_NAME
-    return executable.parent / DATA_FOLDER_NAME
+                return parent.parent
+    return executable.parent
+
+
+def adopt_old_folder(folder: Path) -> Path:
+    """Rename the data folder from before the app was renamed, so saved work carries over.
+
+    If the rename fails, as in a read-only folder, the old folder is used as it is.
+    """
+    old = folder.with_name(OLD_DATA_FOLDER_NAME)
+    if folder.exists() or not old.is_dir():
+        return folder
+    try:
+        os.replace(old, folder)
+    except OSError:
+        return old
+    return folder
 
 
 def _write_json(path: Path, value) -> None:

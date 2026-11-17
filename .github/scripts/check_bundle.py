@@ -7,19 +7,19 @@ import sys
 from pathlib import Path
 
 REQUIRED = [
-    "quote_maker/web/index.html",
-    "quote_maker/web/styles.css",
-    "quote_maker/web/fonts.css",
-    "quote_maker/web/js/app.js",
-    "quote_maker/web/js/render.js",
-    "quote_maker/web/js/paint.js",
-    "quote_maker/web/js/state.js",
-    "quote_maker/web/js/carousel.js",
-    "quote_maker/web/js/carousel-presets.js",
-    "quote_maker/web/js/presets.js",
-    "quote_maker/web/js/fonts.js",
-    "quote_maker/web/icon.ico",
-    "quote_maker/web/icon.png",
+    "quotical/web/index.html",
+    "quotical/web/styles.css",
+    "quotical/web/fonts.css",
+    "quotical/web/js/app.js",
+    "quotical/web/js/render.js",
+    "quotical/web/js/paint.js",
+    "quotical/web/js/state.js",
+    "quotical/web/js/carousel.js",
+    "quotical/web/js/carousel-presets.js",
+    "quotical/web/js/presets.js",
+    "quotical/web/js/fonts.js",
+    "quotical/web/icon.ico",
+    "quotical/web/icon.png",
 ]
 MIN_FONT_FILES = 24
 MIN_FONT_LICENCES = 24
@@ -39,8 +39,8 @@ def problems(names):
     for required in REQUIRED:
         if not any(name.endswith(required) for name in names):
             found.append(f"Missing {required}")
-    fonts = [n for n in names if "quote_maker/web/fonts/" in n and n.endswith(".woff2")]
-    licences = [n for n in names if "quote_maker/web/fonts/" in n and n.endswith("/LICENSE")]
+    fonts = [n for n in names if "quotical/web/fonts/" in n and n.endswith(".woff2")]
+    licences = [n for n in names if "quotical/web/fonts/" in n and n.endswith("/LICENSE")]
     if len(fonts) < MIN_FONT_FILES:
         found.append(f"Only {len(fonts)} font files")
     if len(licences) < MIN_FONT_LICENCES:

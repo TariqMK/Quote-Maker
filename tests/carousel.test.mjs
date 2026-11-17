@@ -3,10 +3,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { CAROUSEL_PRESETS, DEFAULT_CAROUSEL_STYLE, withCarouselDefaults } from "../quote_maker/web/js/carousel-presets.js";
-import { layoutCarousel, paginate } from "../quote_maker/web/js/carousel.js";
-import { FONTS } from "../quote_maker/web/js/fonts.js";
-import { cleanArticle, parseArticle, splitSlides } from "../quote_maker/web/js/text.js";
+import { CAROUSEL_PRESETS, DEFAULT_CAROUSEL_STYLE, withCarouselDefaults } from "../quotical/web/js/carousel-presets.js";
+import { layoutCarousel, paginate } from "../quotical/web/js/carousel.js";
+import { FONTS } from "../quotical/web/js/fonts.js";
+import { cleanArticle, parseArticle, splitSlides } from "../quotical/web/js/text.js";
 
 const words = (paragraph) => paragraph.words.map((w) => w.text).join(" ");
 const looks = (text) => parseArticle(text).flatMap((p) => p.words.flatMap((w) => w.parts.map((x) => [x.text, x.look])));

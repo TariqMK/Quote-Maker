@@ -1,12 +1,12 @@
-![Quote-Maker. Any words. Many styles.](assets/banner.png)
+![Quotical. Any words. Many styles.](assets/banner.png)
 
-Quote-Maker turns pasted text into a quote image, or an article into a carousel of slides. Select a style, adjust it, and save PNG or JPG files. Works offline. Sends no data.
+Quotical turns pasted text into a quote image, or an article into a carousel of slides. Select a style, adjust it, and save PNG or JPG files. Works offline. Sends no data.
 
-Try the working demo on the [Quote-Maker website](https://tariqmk.github.io/Quote-Maker/).
+Try the working demo on the [Quotical website](https://tariqmk.github.io/Quotical/).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/editor-dark.png">
-  <img src="assets/screenshots/editor-light.png" alt="Quote-Maker with a quote in the Oxblood style, with two words highlighted in yellow: the text fields on the left, the image preview in the centre and the style gallery on the right" width="840">
+  <img src="assets/screenshots/editor-light.png" alt="Quotical with a quote in the Oxblood style, with two words highlighted in yellow: the text fields on the left, the image preview in the centre and the style gallery on the right" width="840">
 </picture>
 
 ## Features
@@ -25,7 +25,7 @@ Try the working demo on the [Quote-Maker website](https://tariqmk.github.io/Quot
 
 ## Download
 
-1. Open the [Releases page](https://github.com/TariqMK/Quote-Maker/releases).
+1. Open the [Releases page](https://github.com/TariqMK/Quotical/releases).
 2. Download the file for your computer:
    - Windows x64: `.exe`
    - macOS Apple Silicon: `.zip`
@@ -77,7 +77,7 @@ The app adds a mark to the text, such as `[yellow: these words]` or `[#7fd1ae: t
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/carousel-dark.png">
-  <img src="assets/screenshots/carousel-light.png" alt="Quote-Maker in Carousel mode: the title, subtitle and article on the left, slide 1 of an article in the Paper style in the centre with a row of slide thumbnails below it, and the carousel styles on the right" width="840">
+  <img src="assets/screenshots/carousel-light.png" alt="Quotical in Carousel mode: the title, subtitle and article on the left, slide 1 of an article in the Paper style in the centre with a row of slide thumbnails below it, and the carousel styles on the right" width="840">
 </picture>
 
 1. At the top of the window, select **Carousel**.
@@ -169,10 +169,10 @@ The style appears under **My styles**. Each mode has its own list of custom styl
 
 ## Move the app
 
-The app is portable. It keeps your custom styles and your last work and settings in each mode in a folder named `Quote-Maker Data`, beside the app. The app makes this folder when it first saves something.
+The app is portable. It keeps your custom styles and your last work and settings in each mode in a folder named `Quotical Data`, beside the app. The app makes this folder when it first saves something. If you used the app when it was called Quote-Maker, put the new version beside your `Quote-Maker Data` folder. On first start, the app renames that folder to `Quotical Data` and keeps your styles and work.
 
 1. Close the app.
-2. Move the app and the `Quote-Maker Data` folder together to the new location.
+2. Move the app and the `Quotical Data` folder together to the new location.
 3. Open the app.
 
 **Note:** If the app cannot write to the folder, it shows a message at the top of the window and your changes are not saved. Move the app to a folder you can change.
@@ -184,7 +184,7 @@ The app is portable. It keeps your custom styles and your last work and settings
 - The app makes no network connections. The window loads its interface from a local server on your own computer (127.0.0.1). A content security policy blocks all other network requests.
 - Images and slide folders are saved only where you select.
 - The app reads a text file only when you select **Open text file**. It does not change the file.
-- Custom styles and your last work and settings stay in the `Quote-Maker Data` folder beside the app. The app keeps your data in no other place.
+- Custom styles and your last work and settings stay in the `Quotical Data` folder beside the app. The app keeps your data in no other place.
 - While it runs, the app and its window use temporary working files in your system's temporary folder. They hold none of your saved styles, and they are normally removed when the app closes.
 - The website is separate from the app. Its demo sets your text in your browser and does not send it. The website makes one outside request, to the GitHub API, to find the latest release. GitHub can see your IP address when your browser makes this request. The website has no analytics or tracking.
 
@@ -194,11 +194,11 @@ You need Python 3.10 or later. Node.js is necessary for the JavaScript tests onl
 
 1. Create the environment: `python -m venv .venv`
 2. Install the dependencies: `.venv\Scripts\python -m pip install -e .[dev]`
-3. Start the app: `.venv\Scripts\python -m quote_maker`
+3. Start the app: `.venv\Scripts\python -m quotical`
 
 On macOS and Linux, use `.venv/bin/python`. On Linux, also install the system packages in `.github/workflows/release.yml`, then run `pip install pycairo PyGObject`.
 
-A source run shows the version `v0.0.0.dev0`. It keeps its data in a git-ignored `Quote-Maker Data` folder in the project folder.
+A source run shows the version `v0.0.0.dev0`. It keeps its data in a git-ignored `Quotical Data` folder in the project folder.
 
 ## Tests
 
@@ -250,6 +250,6 @@ The workflow runs the tests, then builds for Windows x64, macOS Apple Silicon an
 
 ## Licence
 
-Quote-Maker is licensed under the [GNU General Public License v3.0](LICENSE).
+Quotical is licensed under the [GNU General Public License v3.0](LICENSE).
 
-The bundled fonts keep their own open licences. Each licence is in the font's folder in `quote_maker/web/fonts` and `docs/engine/fonts`.
+The bundled fonts keep their own open licences. Each licence is in the font's folder in `quotical/web/fonts` and `docs/engine/fonts`.

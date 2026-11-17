@@ -1,4 +1,4 @@
-// Runs the Quote-Maker window: holds the work for each mode, and connects every control.
+// Runs the Quotical window: holds the work for each mode, and connects every control.
 // Single image makes one quote image. Carousel splits an article into a set of slides.
 
 import * as bridge from "./bridge.js";
@@ -15,7 +15,7 @@ const FORMATS = [["png", "PNG"], ["jpg", "JPG"]];
 const QUALITY = { min: 60, max: 100 };
 const SIZE_LIMIT = { min: 200, max: 6000 };
 const MINE = "My styles";
-const WRITE_FAILED = "Could not write to the Quote-Maker Data folder. Move the app to a folder you can change.";
+const WRITE_FAILED = "Could not write to the Quotical Data folder. Move the app to a folder you can change.";
 const THUMB = { quote: "Words *worth* keeping", author: "Author", source: "", size: 400, textScale: 1.7 };
 const CAROUSEL_THUMB = {
   width: 320,

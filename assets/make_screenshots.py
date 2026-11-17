@@ -23,7 +23,7 @@ from pathlib import Path
 
 ASSETS = Path(__file__).parent
 ROOT = ASSETS.parent
-WEB_DIR = ROOT / "quote_maker" / "web"
+WEB_DIR = ROOT / "quotical" / "web"
 OUT_DIR = ASSETS / "screenshots"
 WIDTH, HEIGHT, SCALE = 1120, 820, 2
 FETCH_TIMEOUT_SECONDS = 20
@@ -59,7 +59,7 @@ def repo_tags():
 
 def source_version():
     """Return the development version from the source, for a repository with no release yet."""
-    text = (ROOT / "quote_maker" / "_version.py").read_text(encoding="utf-8")
+    text = (ROOT / "quotical" / "_version.py").read_text(encoding="utf-8")
     return re.search(r'__version__ = "([^"]+)"', text).group(1)
 
 

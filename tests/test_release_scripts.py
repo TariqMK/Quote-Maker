@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from quote_maker._version import __version__
+from quotical._version import __version__
 
 ROOT = Path(__file__).parent.parent
 
@@ -81,7 +81,7 @@ def test_next_version_rejects_an_unknown_bump():
 
 
 def real_web_files():
-    return [p.relative_to(ROOT).as_posix() for p in (ROOT / "quote_maker" / "web").rglob("*")]
+    return [p.relative_to(ROOT).as_posix() for p in (ROOT / "quotical" / "web").rglob("*")]
 
 
 def test_bundle_check_passes_with_every_web_file():
@@ -96,5 +96,5 @@ def test_bundle_check_passes_inside_a_macos_app():
 def test_bundle_check_reports_missing_files_and_fonts():
     names = [n for n in real_web_files() if not n.endswith((".woff2", "js/app.js"))]
     errors = check_bundle.problems(names)
-    assert "Missing quote_maker/web/js/app.js" in errors
+    assert "Missing quotical/web/js/app.js" in errors
     assert any("font files" in error for error in errors)

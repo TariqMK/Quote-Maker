@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from quote_maker.app import (
+from quotical.app import (
     JPEG_SIGNATURE,
     MAX_TEXT_FILE_BYTES,
     PNG_SIGNATURE,
@@ -15,9 +15,11 @@ from quote_maker.app import (
     read_text_file,
     write_new_image,
 )
-from quote_maker.storage import (
+from quotical.storage import (
     DATA_FOLDER_NAME,
+    OLD_DATA_FOLDER_NAME,
     Storage,
+    adopt_old_folder,
     data_dir,
     new_folder,
     safe_filename,
@@ -34,6 +36,23 @@ def test_source_run_keeps_data_in_the_project_folder():
     assert data_dir() == Path(__file__).resolve().parent.parent / DATA_FOLDER_NAME
 
 
+def test_old_data_folder_is_renamed_so_saved_work_carries_over(tmp_path):
+    old = tmp_path / OLD_DATA_FOLDER_NAME
+    old.mkdir()
+    (old / "styles.json").write_text("[]", encoding="utf-8")
+    folder = adopt_old_folder(tmp_path / DATA_FOLDER_NAME)
+    assert folder == tmp_path / DATA_FOLDER_NAME
+    assert (folder / "styles.json").exists()
+    assert not old.exists()
+
+
+def test_new_data_folder_wins_when_both_exist(tmp_path):
+    (tmp_path / OLD_DATA_FOLDER_NAME).mkdir()
+    (tmp_path / DATA_FOLDER_NAME).mkdir()
+    assert adopt_old_folder(tmp_path / DATA_FOLDER_NAME) == tmp_path / DATA_FOLDER_NAME
+    assert (tmp_path / OLD_DATA_FOLDER_NAME).exists()
+
+
 def test_default_storage_uses_the_folder_beside_the_app():
     assert Storage().folder == data_dir()
 
@@ -41,9 +60,9 @@ def test_default_storage_uses_the_folder_beside_the_app():
 @pytest.mark.parametrize(
     ("platform", "executable", "expected_parent"),
     [
-        ("win32", "Tools/Quote-Maker.exe", "Tools"),
-        ("linux", "Tools/Quote-Maker", "Tools"),
-        ("darwin", "Tools/Quote-Maker.app/Contents/MacOS/Quote-Maker", "Tools"),
+        ("win32", "Tools/Quotical.exe", "Tools"),
+        ("linux", "Tools/Quotical", "Tools"),
+        ("darwin", "Tools/Quotical.app/Contents/MacOS/Quotical", "Tools"),
     ],
 )
 def test_packaged_app_keeps_data_beside_the_app(

@@ -2,8 +2,8 @@
 // back to browser storage and a normal download, so the interface runs without Python.
 
 // Each mode keeps its saved styles apart, the same as the desktop app's files.
-const STYLES_KEYS = { single: "quote-maker-styles", carousel: "quote-maker-carousel-styles" };
-const STATE_KEY = "quote-maker-state";
+const STYLES_KEYS = { single: "quotical-styles", carousel: "quotical-carousel-styles" };
+const STATE_KEY = "quotical-state";
 const WAIT_FOR_DESKTOP_MS = 1500;
 
 let desktop = null;

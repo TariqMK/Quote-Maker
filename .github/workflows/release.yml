@@ -87,11 +87,11 @@ jobs:
           - target: windows-x64
             os: windows-latest
             mode: --onefile
-            icon: --icon assets/icon/quote-maker.ico
+            icon: --icon assets/icon/quotical.ico
           - target: macos-arm64
             os: macos-latest
             mode: --onedir
-            icon: --icon assets/icon/quote-maker.icns
+            icon: --icon assets/icon/quotical.icns
           # Linux executables have no file icon. The window icon comes from the app.
           - target: linux-x64
             os: ubuntu-24.04
@@ -134,37 +134,37 @@ jobs:
 
       - name: Apply the version on this runner only
         run: |
-          printf '"""The app version, set by the release build."""\n\n__version__ = "%s"\n' "${TAG#v}" > quote_maker/_version.py
-          cat quote_maker/_version.py
+          printf '"""The app version, set by the release build."""\n\n__version__ = "%s"\n' "${TAG#v}" > quotical/_version.py
+          cat quotical/_version.py
 
       - name: Build
         run: >
           python -m PyInstaller --noconfirm --clean ${{ matrix.mode }} --windowed
           ${{ matrix.icon }}
-          --name Quote-Maker --paths .
-          --add-data "quote_maker/web:quote_maker/web"
-          quote_maker/__main__.py
+          --name Quotical --paths .
+          --add-data "quotical/web:quotical/web"
+          quotical/__main__.py
 
       - name: Check the packaged app contains every file
         run: |
           case "$RUNNER_OS" in
-            Windows) python .github/scripts/check_bundle.py dist/Quote-Maker.exe ;;
-            macOS) python .github/scripts/check_bundle.py dist/Quote-Maker.app ;;
-            Linux) python .github/scripts/check_bundle.py dist/Quote-Maker ;;
+            Windows) python .github/scripts/check_bundle.py dist/Quotical.exe ;;
+            macOS) python .github/scripts/check_bundle.py dist/Quotical.app ;;
+            Linux) python .github/scripts/check_bundle.py dist/Quotical ;;
           esac
 
       - name: Stop if the macOS app has no icon
         if: runner.os == 'macOS'
-        run: ls dist/Quote-Maker.app/Contents/Resources/*.icns
+        run: ls dist/Quotical.app/Contents/Resources/*.icns
 
       - name: Package
         run: |
           mkdir upload
-          name="Quote-Maker-$TAG-${{ matrix.target }}"
+          name="Quotical-$TAG-${{ matrix.target }}"
           case "$RUNNER_OS" in
-            Windows) mv dist/Quote-Maker.exe "upload/$name.exe" ;;
-            macOS) ditto -c -k --keepParent dist/Quote-Maker.app "upload/$name.zip" ;;
-            Linux) tar -czf "upload/$name.tar.gz" -C dist Quote-Maker ;;
+            Windows) mv dist/Quotical.exe "upload/$name.exe" ;;
+            macOS) ditto -c -k --keepParent dist/Quotical.app "upload/$name.zip" ;;
+            Linux) tar -czf "upload/$name.tar.gz" -C dist Quotical ;;
           esac
           ls -la upload
 
@@ -205,6 +205,6 @@ jobs:
           gh release create "$TAG" files/* \
             --repo "$GITHUB_REPOSITORY" \
             --verify-tag \
-            --title "Quote-Maker $TAG" \
+            --title "Quotical $TAG" \
             --generate-notes \
             "${flags[@]}"

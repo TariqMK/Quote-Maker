@@ -1,4 +1,4 @@
-// Runs the Quote-Maker product page: the working demo, the proof sheet and the download links.
+// Runs the Quotical product page: the working demo, the proof sheet and the download links.
 
 import { CAROUSEL_PRESETS, withCarouselDefaults } from "./engine/js/carousel-presets.js";
 import { ensureCarouselFonts, layoutCarousel, renderSlide } from "./engine/js/carousel.js";
@@ -6,7 +6,7 @@ import { CATEGORIES, PRESETS, mergeDeep, withDefaults } from "./engine/js/preset
 import { ensureFonts, renderQuote } from "./engine/js/render.js";
 import { HIGHLIGHTS, applyHighlight } from "./engine/js/text.js";
 
-const REPO = "TariqMK/Quote-Maker";
+const REPO = "TariqMK/Quotical";
 const ASSET = { windows: /windows-x64\.exe$/i, macos: /macos-arm64\.zip$/i, linux: /linux-x64\.tar\.gz$/i };
 const OS_NAME = { windows: "Windows", macos: "macOS", linux: "Linux" };
 

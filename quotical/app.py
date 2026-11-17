@@ -8,8 +8,8 @@ from pathlib import Path
 
 import webview
 
-from quote_maker._version import __version__
-from quote_maker.storage import Storage, new_folder, safe_filename, safe_folder_name
+from quotical._version import __version__
+from quotical.storage import Storage, new_folder, safe_filename, safe_folder_name
 
 WEB_DIR = Path(__file__).parent / "web"
 # macOS ignores this and takes the window icon from the app bundle.
@@ -146,13 +146,13 @@ class Api:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Quote-Maker")
+    parser = argparse.ArgumentParser(description="Quotical")
     parser.add_argument("--debug", action="store_true", help="open the developer tools")
     args = parser.parse_args()
 
     api = Api(Storage())
     window = webview.create_window(
-        "Quote-Maker",
+        "Quotical",
         url=str(WEB_DIR / "index.html"),
         js_api=api,
         width=1400,

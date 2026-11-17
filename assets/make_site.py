@@ -12,7 +12,7 @@ from pathlib import Path
 ATTEMPTS = 5
 
 ROOT = Path(__file__).resolve().parent.parent
-WEB = ROOT / "quote_maker" / "web"
+WEB = ROOT / "quotical" / "web"
 DOCS = ROOT / "docs"
 ENGINE = DOCS / "engine"
 
@@ -29,8 +29,8 @@ ENGINE_SCRIPTS = [
 ]
 
 BRAND_FILES = {
-    ROOT / "assets" / "icon" / "quote-maker.svg": DOCS / "icon.svg",
-    ROOT / "assets" / "icon" / "quote-maker.png": DOCS / "apple-touch-icon.png",
+    ROOT / "assets" / "icon" / "quotical.svg": DOCS / "icon.svg",
+    ROOT / "assets" / "icon" / "quotical.png": DOCS / "apple-touch-icon.png",
     ROOT / "assets" / "social-card.png": DOCS / "social-card.png",
 }
 

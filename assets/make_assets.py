@@ -1,6 +1,6 @@
 """Writes every brand image from the icon masters in assets/icon.
 
-Writes the app icon as .png, .ico and .icns, copies the window icons into quote_maker/web,
+Writes the app icon as .png, .ico and .icns, copies the window icons into quotical/web,
 and writes assets/banner.png and assets/social-card.png. Text uses the app's bundled fonts.
 Run from any environment that has the brand tools:
     python -m pip install .[brand]
@@ -31,12 +31,12 @@ from PySide6.QtSvg import QSvgRenderer
 
 ASSETS = Path(__file__).parent
 ICON_DIR = ASSETS / "icon"
-WEB_DIR = ASSETS.parent / "quote_maker" / "web"
-NAME = "quote-maker"
-APP_NAME = "Quote-Maker"
+WEB_DIR = ASSETS.parent / "quotical" / "web"
+NAME = "quotical"
+APP_NAME = "Quotical"
 TAGLINE = "Any words. Many styles."
 
-# Colours from the app's dark theme in quote_maker/web/styles.css.
+# Colours from the app's dark theme in quotical/web/styles.css.
 BACKGROUND = "#111112"  # --stage
 BORDER = QColor(255, 255, 255, 23)  # --line
 TEXT = "#eeeeec"  # --text
@@ -298,7 +298,7 @@ def make_social_card(guides=None):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Writes every Quote-Maker brand image.")
+    parser = argparse.ArgumentParser(description="Writes every Quotical brand image.")
     parser.add_argument("--guides", help="also write a social card copy with the safe area drawn")
     args = parser.parse_args()
 
