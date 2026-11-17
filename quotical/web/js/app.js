@@ -1,10 +1,13 @@
 // Runs the Quotical window: holds the work for each mode, and connects every control.
 // Single image makes one quote image. Carousel splits an article into a set of slides.
+// Post makes one image that looks like a social media post.
 
 import * as bridge from "./bridge.js";
 import { CAROUSEL_PRESETS, withCarouselDefaults } from "./carousel-presets.js";
 import { ensureCarouselFonts, layoutCarousel, renderSlide } from "./carousel.js";
-import { CAROUSEL_CONTROL_GROUPS, CONTROL_GROUPS, renderControls, setPath } from "./controls.js";
+import { CAROUSEL_CONTROL_GROUPS, CONTROL_GROUPS, POST_CONTROL_GROUPS, renderControls, setPath } from "./controls.js";
+import { ensurePostFonts, renderPost } from "./post.js";
+import { POST_CATEGORIES, POST_PRESETS, withPostDefaults } from "./post-presets.js";
 import { CATEGORIES, PRESETS, mergeDeep, withDefaults } from "./presets.js";
 import { ensureFonts, renderQuote } from "./render.js";
 import { DEFAULT_MODE, buildSavedState, readSavedState } from "./state.js";
@@ -22,6 +25,15 @@ const CAROUSEL_THUMB = {
   title: "Words worth keeping",
   text: "Clear writing is a set of *small habits* that anyone can learn, one paragraph at a time.",
 };
+const POST_THUMB = {
+  size: 400,
+  name: "Alex Rivera",
+  handle: "@alexwrites",
+  date: "2h",
+  text: "Words *worth* keeping.",
+};
+// A post picture is stored at this size, which keeps state.json small.
+const AVATAR_SIZE = 256;
 const FILM_HEIGHT = 128; // Thumbnail canvases are drawn at 2x their 64 px display height.
 
 const SAMPLE_ARTICLE = `Clear writing is not a talent. It is a set of *small habits* that anyone can learn.
@@ -36,6 +48,10 @@ const SAMPLE_ARTICLE = `Clear writing is not a talent. It is a set of *small hab
 **Cut what does not earn its place.** Read each paragraph and ask whether the piece would miss it.
 
 **Read it aloud.** Your ear finds the clumsy line that your eye forgives.`;
+
+const SAMPLE_POST = `Clear writing is not a talent.
+
+It is a set of *small habits* that anyone can learn: lead with the point, use short sentences, and cut what does not earn its place.`;
 
 // What differs between the modes. The rest of this file works on whichever mode is open.
 const MODES = {
@@ -96,6 +112,39 @@ const MODES = {
       quality: 90,
     },
   },
+  post: {
+    presets: POST_PRESETS,
+    categories: POST_CATEGORIES,
+    withDefaults: withPostDefaults,
+    controls: POST_CONTROL_GROUPS,
+    // The picture is loaded with the fonts, so the preview never draws without it.
+    ensureFonts: async (style) => {
+      await ensurePostFonts(style);
+      await loadAvatar(work.post.avatar);
+    },
+    sizes: [
+      { id: "square", name: "Square", width: 1080, height: 1080 },
+      { id: "portrait", name: "Portrait", width: 1080, height: 1350 },
+      { id: "landscape", name: "Landscape", width: 1200, height: 675 },
+      { id: "story", name: "Story", width: 1080, height: 1920 },
+    ],
+    fields: { name: "post-name", handle: "post-handle", date: "post-date", text: "post-text" },
+    highlightFields: ["post-text"],
+    panels: ["fields-post", "fields-post-after"],
+    highlightHint: "Select words in Post, then select a colour",
+    actions: { copy: "Copy image", save: "Save image" },
+    defaults: {
+      name: "Alex Rivera",
+      handle: "@alexwrites",
+      date: "9:41 AM · Nov 17, 2026",
+      text: SAMPLE_POST,
+      verified: true,
+      avatar: "",
+      sizeId: "square",
+      format: "png",
+      quality: 90,
+    },
+  },
 };
 
 // The keys of each mode's work that are saved in state.json.
@@ -108,15 +157,21 @@ const SAVED_KEYS = {
     "title", "subtitle", "text", "keepLineBreaks", "sizeId", "scale", "format", "quality",
     "styleId", "style", "edited", "slide",
   ],
+  post: [
+    "name", "handle", "date", "text", "verified", "avatar", "sizeId", "scale", "format", "quality",
+    "styleId", "style", "edited",
+  ],
 };
 
 const $ = (id) => document.getElementById(id);
 
 let mode = DEFAULT_MODE;
 const work = {};
-const customStyles = { single: [], carousel: [] };
-const filters = { single: "All", carousel: "All" };
-const lastHighlightField = { single: "quote", carousel: "article" };
+const customStyles = { single: [], carousel: [], post: [] };
+const filters = { single: "All", carousel: "All", post: "All" };
+const lastHighlightField = { single: "quote", carousel: "article", post: "post-text" };
+// The loaded post picture, kept so each redraw does not decode it again.
+let avatarImage = { src: "", image: null };
 let carouselLayout = null;
 let renderToken = 0;
 let framePending = false;
@@ -164,6 +219,7 @@ function requestRender() {
     await config().ensureFonts(state().style);
     if (token !== renderToken) return;
     if (mode === "carousel") drawCarousel();
+    else if (mode === "post") drawPost();
     else drawQuote();
   });
 }
@@ -185,6 +241,38 @@ function drawQuote() {
   const canvas = $("preview");
   sizeCanvas(canvas, width, height);
   const result = renderQuote(canvas.getContext("2d"), { ...quoteInput(), width, height });
+  const note = `${width} × ${height} px`;
+  $("proof-note").textContent = result.fittedDown
+    ? `${note}  ·  text reduced to size ${Math.round(result.fontSize)} to fit`
+    : note;
+}
+
+async function loadAvatar(src) {
+  if (avatarImage.src === src) return;
+  if (!src) {
+    avatarImage = { src: "", image: null };
+    return;
+  }
+  const image = new Image();
+  image.src = src;
+  try {
+    await image.decode();
+    avatarImage = { src, image };
+  } catch {
+    avatarImage = { src, image: null };
+  }
+}
+
+function postInput() {
+  const { name, handle, date, text, verified, style } = state();
+  return { name, handle, date, text, verified, style, avatar: avatarImage.image };
+}
+
+function drawPost() {
+  const { width, height } = imageSize();
+  const canvas = $("preview");
+  sizeCanvas(canvas, width, height);
+  const result = renderPost(canvas.getContext("2d"), { ...postInput(), width, height });
   const note = `${width} × ${height} px`;
   $("proof-note").textContent = result.fittedDown
     ? `${note}  ·  text reduced to size ${Math.round(result.fontSize)} to fit`
@@ -271,6 +359,8 @@ function exportCanvas(slide = state().slide) {
   canvas.height = height * scale;
   if (mode === "carousel") {
     renderSlide(canvas.getContext("2d"), carouselLayout, slide, scale);
+  } else if (mode === "post") {
+    renderPost(canvas.getContext("2d"), { ...postInput(), width: canvas.width, height: canvas.height });
   } else {
     renderQuote(canvas.getContext("2d"), { ...quoteInput(), width: canvas.width, height: canvas.height });
   }
@@ -287,7 +377,9 @@ const slideName = (index) => `${slideBase()}-${String(index + 1).padStart(2, "0"
 
 function exportName() {
   const current = state();
-  return mode === "carousel" ? slideName(current.slide) : suggestFilename(current.quote, current.author);
+  if (mode === "carousel") return slideName(current.slide);
+  if (mode === "post") return suggestFilename(current.text, current.name);
+  return suggestFilename(current.quote, current.author);
 }
 
 // Stops a second save from starting while slides are still being written.
@@ -369,7 +461,8 @@ function persist() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     const pick = (name) => Object.fromEntries(SAVED_KEYS[name].map((key) => [key, work[name][key]]));
-    bridge.saveState(buildSavedState(mode, pick("single"), pick("carousel"))).catch(() => setStatus(WRITE_FAILED));
+    const saved = buildSavedState(mode, pick("single"), pick("carousel"), pick("post"));
+    bridge.saveState(saved).catch(() => setStatus(WRITE_FAILED));
   }, 500);
 }
 
@@ -476,6 +569,52 @@ async function openTextFile() {
   current.slide = 0;
   setStatus(`Opened ${file.name}`);
   changed();
+}
+
+// Asks for a picture, then keeps the middle square of it at AVATAR_SIZE. The file is only read.
+async function chooseAvatar() {
+  let file;
+  try {
+    file = await bridge.openImageFile();
+  } catch (error) {
+    setStatus(`Could not open the picture: ${error.message ?? error}`);
+    return;
+  }
+  if (!file) return;
+  const image = new Image();
+  image.src = file.dataUrl;
+  try {
+    await image.decode();
+  } catch {
+    setStatus(`Could not read ${file.name} as a picture`);
+    return;
+  }
+  const side = Math.min(image.naturalWidth, image.naturalHeight);
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = AVATAR_SIZE;
+  canvas.getContext("2d").drawImage(
+    image, (image.naturalWidth - side) / 2, (image.naturalHeight - side) / 2, side, side, 0, 0, AVATAR_SIZE, AVATAR_SIZE,
+  );
+  work.post.avatar = canvas.toDataURL("image/png");
+  renderAvatar();
+  setStatus(`Picture set from ${file.name}`);
+  changed();
+}
+
+function removeAvatar() {
+  work.post.avatar = "";
+  renderAvatar();
+  changed();
+}
+
+function renderAvatar() {
+  const src = work.post.avatar;
+  $("avatar-preview").hidden = !src;
+  if (src) $("avatar-preview").src = src;
+  else $("avatar-preview").removeAttribute("src");
+  $("avatar-empty").hidden = !!src;
+  $("remove-avatar").hidden = !src;
+  $("choose-avatar").textContent = src ? "Change picture" : "Choose picture";
 }
 
 function renderSizes() {
@@ -614,9 +753,27 @@ async function drawCarouselThumbnail(canvas, style) {
   renderSlide(canvas.getContext("2d"), layout, 0, CAROUSEL_THUMB.width / 1080);
 }
 
+async function drawPostThumbnail(canvas, style) {
+  await ensurePostFonts(style);
+  canvas.width = canvas.height = POST_THUMB.size;
+  // Thumbnails are small, so the margin shrinks and the type is enlarged.
+  const enlarged = mergeDeep(style, {
+    layout: { margin: style.layout.margin * 0.5 },
+    profile: { size: style.profile.size * 1.5 },
+    body: { size: style.body.size * 1.7 },
+  });
+  renderPost(canvas.getContext("2d"), {
+    ...POST_THUMB,
+    width: POST_THUMB.size,
+    height: POST_THUMB.size,
+    verified: true,
+    style: enlarged,
+  });
+}
+
 function renderGallery() {
   const styles = visibleStyles();
-  const draw = mode === "carousel" ? drawCarouselThumbnail : drawThumbnail;
+  const draw = { carousel: drawCarouselThumbnail, post: drawPostThumbnail }[mode] ?? drawThumbnail;
   $("gallery").classList.toggle("portrait", mode === "carousel");
   $("gallery-empty").hidden = !(filters[mode] === MINE && styles.length === 0);
   const items = styles.map((raw) => {
@@ -857,6 +1014,12 @@ function bindEvents() {
     work.carousel.keepLineBreaks = event.target.checked;
     changed();
   });
+  $("post-verified").addEventListener("change", (event) => {
+    work.post.verified = event.target.checked;
+    changed();
+  });
+  $("choose-avatar").addEventListener("click", chooseAvatar);
+  $("remove-avatar").addEventListener("click", removeAvatar);
   document.querySelectorAll("#modes [data-mode]").forEach((button) => {
     button.addEventListener("click", () => setMode(button.dataset.mode));
   });
@@ -912,6 +1075,8 @@ function applySavedWork(name, saved) {
     if (numeric || typeof saved[key] === typeof modeConfig.defaults[key]) target[key] = saved[key];
   }
   if (modeConfig.sizes.some((s) => s.id === saved.sizeId)) target.sizeId = saved.sizeId;
+  // Only a picture this window made itself is accepted.
+  if (name === "post" && !/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(target.avatar)) target.avatar = "";
   if (SCALES.includes(saved.scale)) target.scale = saved.scale;
   if (!FORMATS.some(([format]) => format === target.format)) target.format = modeConfig.defaults.format;
   target.quality = Math.min(QUALITY.max, Math.max(QUALITY.min, Math.round(Number(target.quality)) || 90));
@@ -929,6 +1094,8 @@ function renderAll() {
     for (const [key, id] of Object.entries(modeConfig.fields)) $(id).value = work[name][key];
   }
   $("keep-breaks").checked = work.carousel.keepLineBreaks;
+  $("post-verified").checked = work.post.verified;
+  renderAvatar();
   renderMode();
   renderSizes();
   renderScales();
@@ -943,6 +1110,7 @@ function renderAll() {
 async function start() {
   work.single = freshWork("single");
   work.carousel = freshWork("carousel");
+  work.post = freshWork("post");
   bindEvents();
   renderHighlights();
   showTab("styles");
@@ -951,9 +1119,11 @@ async function start() {
   $("version").textContent = `v${await bridge.getVersion()}`;
   customStyles.single = await bridge.listStyles("single");
   customStyles.carousel = await bridge.listStyles("carousel");
+  customStyles.post = await bridge.listStyles("post");
   const saved = readSavedState(await bridge.loadState());
   applySavedWork("single", saved.single);
   applySavedWork("carousel", saved.carousel);
+  applySavedWork("post", saved.post);
   mode = saved.mode;
   renderAll();
 }

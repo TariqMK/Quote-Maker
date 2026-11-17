@@ -2,7 +2,7 @@
 // back to browser storage and a normal download, so the interface runs without Python.
 
 // Each mode keeps its saved styles apart, the same as the desktop app's files.
-const STYLES_KEYS = { single: "quotical-styles", carousel: "quotical-carousel-styles" };
+const STYLES_KEYS = { single: "quotical-styles", carousel: "quotical-carousel-styles", post: "quotical-post-styles" };
 const STATE_KEY = "quotical-state";
 const WAIT_FOR_DESKTOP_MS = 1500;
 
@@ -71,6 +71,27 @@ export async function openTextFile() {
   });
   if (!file) return null;
   return { name: file.name.replace(/\.[^.]+$/, ""), text: await file.text() };
+}
+
+// Asks for a picture and returns { name, dataUrl }, or null if the user cancelled.
+export async function openImageFile() {
+  if (desktop) return desktop.open_image_file();
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/png,image/jpeg,image/webp,image/gif";
+  const file = await new Promise((resolve) => {
+    input.addEventListener("change", () => resolve(input.files[0] ?? null), { once: true });
+    input.addEventListener("cancel", () => resolve(null), { once: true });
+    input.click();
+  });
+  if (!file) return null;
+  const dataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(reader.result));
+    reader.addEventListener("error", () => reject(reader.error));
+    reader.readAsDataURL(file);
+  });
+  return { name: file.name.replace(/\.[^.]+$/, ""), dataUrl };
 }
 
 export async function loadState() {

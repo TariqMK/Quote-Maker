@@ -12,6 +12,7 @@ from quotical.app import (
     PNG_SIGNATURE,
     Api,
     decode_image,
+    read_picture_file,
     read_text_file,
     write_new_image,
 )
@@ -277,3 +278,35 @@ def test_text_file_over_the_limit_is_refused(tmp_path):
     big.write_bytes(b"a" * (MAX_TEXT_FILE_BYTES + 1))
     with pytest.raises(ValueError):
         read_text_file(big)
+
+
+def test_post_styles_have_their_own_file(storage):
+    saved = storage.save_style({"name": "Post style"}, "post")
+    assert [s["id"] for s in storage.list_styles("post")] == [saved["id"]]
+    assert (storage.folder / "post-styles.json").exists()
+    assert storage.list_styles() == []
+
+
+@pytest.mark.parametrize(
+    ("data", "mime"),
+    [
+        (PNG_SIGNATURE + b"rest", "image/png"),
+        (JPEG_SIGNATURE + b"rest", "image/jpeg"),
+        (b"GIF89a" + b"rest", "image/gif"),
+        (b"RIFF\x00\x00\x00\x00WEBPVP8 ", "image/webp"),
+    ],
+)
+def test_picture_file_is_read_as_a_data_url_and_left_unchanged(tmp_path, data, mime):
+    picture = tmp_path / "Me.pic"
+    picture.write_bytes(data)
+    result = read_picture_file(picture)
+    assert result["name"] == "Me"
+    assert result["dataUrl"] == f"data:{mime};base64,{base64.b64encode(data).decode()}"
+    assert picture.read_bytes() == data
+
+
+def test_file_that_is_not_a_picture_is_refused(tmp_path):
+    other = tmp_path / "notes.png"
+    other.write_bytes(b"just some text")
+    with pytest.raises(ValueError):
+        read_picture_file(other)

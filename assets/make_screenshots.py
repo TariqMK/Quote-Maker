@@ -129,7 +129,7 @@ SAMPLE_CAROUSEL_STYLES = [
 FAKE_API = """
 window.pywebview = { api: {
   get_version: async () => VERSION,
-  list_styles: async (kind) => (kind === "carousel" ? CAROUSEL_STYLES : STYLES),
+  list_styles: async (kind) => ({ carousel: CAROUSEL_STYLES, post: [] })[kind] ?? STYLES,
   load_state: async () => ({}),
   save_state: async () => null,
   save_style: async (style) => style,
@@ -138,6 +138,7 @@ window.pywebview = { api: {
   choose_export_folder: async () => null,
   save_export_image: async () => null,
   open_text_file: async () => null,
+  open_image_file: async () => null,
 } };
 """.replace("VERSION", json.dumps(SHOWN_VERSION))
 FAKE_API = FAKE_API.replace("CAROUSEL_STYLES", json.dumps(SAMPLE_CAROUSEL_STYLES))
@@ -203,10 +204,22 @@ VIEWS = [
         "style": "carousel-paper",
         "tab": "tab-styles",
     },
+    {
+        "file": "post",
+        "mode": "post",
+        "name": "Mara Ellison",
+        "handle": "@maraellison",
+        "date": "8:15 AM · Nov 17, 2026",
+        "text": "Keep the first draft.\n\nIt remembers what you *meant* before you knew how to say it. "
+        "The [yellow: second draft] only makes it clearer.",
+        "size": "Square",
+        "style": "post-short-dim",
+        "tab": "tab-styles",
+    },
 ]
 
 # The width each mode draws its style thumbnails at, used to wait for them.
-THUMB_WIDTH = {"single": 400, "carousel": 320}
+THUMB_WIDTH = {"single": 400, "carousel": 320, "post": 400}
 
 
 class QuietHandler(SimpleHTTPRequestHandler):
@@ -259,6 +272,14 @@ def capture(browser, url, scheme):
                 "(() => { const a = document.getElementById('article');"
                 " a.setSelectionRange(0, 0); a.scrollTop = 0; a.blur(); })()"
             )
+        elif mode == "post":
+            page.click("[data-mode=post]")
+            wait_until(page, "!!document.querySelector('[data-style-id=post-short-light]')")
+            page.fill("#post-name", view["name"])
+            page.fill("#post-handle", view["handle"])
+            page.fill("#post-date", view["date"])
+            page.fill("#post-text", view["text"])
+            page.evaluate("document.getElementById('post-text').blur()")
         else:
             page.fill("#quote", view["quote"])
             page.fill("#author", view["author"])

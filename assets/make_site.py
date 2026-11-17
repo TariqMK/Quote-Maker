@@ -23,6 +23,8 @@ ENGINE_SCRIPTS = [
     "fonts.js",
     "layout.js",
     "paint.js",
+    "post.js",
+    "post-presets.js",
     "presets.js",
     "render.js",
     "text.js",

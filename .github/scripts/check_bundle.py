@@ -16,6 +16,8 @@ REQUIRED = [
     "quotical/web/js/state.js",
     "quotical/web/js/carousel.js",
     "quotical/web/js/carousel-presets.js",
+    "quotical/web/js/post.js",
+    "quotical/web/js/post-presets.js",
     "quotical/web/js/presets.js",
     "quotical/web/js/fonts.js",
     "quotical/web/icon.ico",

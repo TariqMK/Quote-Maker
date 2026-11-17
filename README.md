@@ -1,6 +1,6 @@
 ![Quotical. Any words. Many styles.](assets/banner.png)
 
-Quotical turns pasted text into a quote image, or an article into a carousel of slides. Select a style, adjust it, and save PNG or JPG files. Works offline. Sends no data.
+Quotical turns pasted text into a quote image, an image that looks like a social media post, or an article into a carousel of slides. Select a style, adjust it, and save PNG or JPG files. Works offline. Sends no data.
 
 Try the working demo on the [Quotical website](https://tariqmk.github.io/Quotical/).
 
@@ -11,9 +11,10 @@ Try the working demo on the [Quotical website](https://tariqmk.github.io/Quotica
 
 ## Features
 
-- Two modes: **Single image** for one quote, and **Carousel** for an article on a set of slides.
+- Three modes: **Single image** for one quote, **Carousel** for an article on a set of slides, and **Post** for text that looks like a social media post.
 - 25+ quote styles in 5 categories: Classic, Modern, Bold, Soft and Retro.
 - 6 carousel styles. Carousel text splits into slides automatically, or where you add a slide break.
+- 10 post styles in 4 layouts: Short post, Work post, Thread post and Photo post. Each post shows your picture or initials, name, handle, verified badge and date. The images show no platform logos.
 - Highlights behind selected words, in 6 preset colours or a custom colour.
 - Fine-tune controls for text, background, frame and layout in each mode.
 - Custom styles that you save, update and delete.
@@ -70,6 +71,7 @@ The app adds a mark to the text, such as `[yellow: these words]` or `[#7fd1ae: t
 - To remove a highlight, select the words, then select **Clear**.
 - In **Single image**, highlights work in **Quote** only. **Author** and **Source** do not have them.
 - In **Carousel**, highlights work in **Title**, **Subtitle** and **Article**. The colour applies to the field you used last.
+- In **Post**, highlights work in **Post** only.
 - The text keeps the style's colour when it is readable on the highlight. If it is not readable, the text changes to near-black or white.
 - A highlight removes the style's text shadow from those words.
 
@@ -128,6 +130,47 @@ The caption below the preview shows the slide number and the image size. It also
 
 The slide keys do not work while the cursor is in a text field.
 
+## Make a post image
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/post-dark.png">
+  <img src="assets/screenshots/post-light.png" alt="Quotical in Post mode: the name, handle, post text and date on the left, a post in the Short dim style in the centre, and the post styles on the right" width="840">
+</picture>
+
+1. At the top of the window, select **Post**.
+2. Optional: under **Picture**, select **Choose picture**, then select a PNG, JPEG, GIF or WebP file. Without a picture, the post shows the initials of **Name**.
+3. Enter a **Name** and a **Handle**.
+4. Optional: select or clear **Verified badge**.
+5. Paste your text into **Post**.
+6. Optional: enter a **Date**, such as `9:41 AM · Nov 17, 2026` or `2h`. The app shows the text as you type it.
+7. Select a style in the **Styles** tab.
+8. Select an **Image size**.
+9. Optional: select an **Export scale** and a **File type**.
+10. Select **Save image** (Ctrl+S), or select **Copy image**.
+
+**Note:** The app reads the picture file only. It keeps the middle square of the picture at 256 x 256 px with your saved work. It does not change the file.
+
+- To use another picture, select **Change picture**. To show the initials again, select **Remove**.
+- Empty fields do not appear in the image.
+
+### Post layouts
+
+| Category | Layout |
+|---|---|
+| Short post | Picture, name and handle at the top. The text below. The date and a row of action icons at the bottom. |
+| Work post | Picture, name, handle as a headline, and the date at the top. The text below. Action icons with labels at the bottom. |
+| Thread post | Picture on the left. The name, handle and date on one line, with the text and action icons below them. |
+| Photo post | Picture, handle and name at the top. The text on a coloured square. Action icons and the date at the bottom. |
+
+To change the layout of any style, use **Post layout** under **Layout** in the **Fine-tune** tab. To remove the action icons, clear **Action icons** under **Name and details**.
+
+### Post text
+
+- Line breaks stay in the image. A blank line adds a gap.
+- Put one star around words for italic: `*these words*`. Put two stars around words for bold: `**these words**`.
+- Long text shrinks to fit the image. The caption below the preview shows when the text was reduced.
+- Straight quotes, `--` and `...` change to typographic characters.
+
 ## Image sizes
 
 | Mode | Image size | Pixels |
@@ -140,8 +183,12 @@ The slide keys do not work while the cursor is in a text field.
 | Carousel | Portrait | 1080 x 1350 |
 | Carousel | Square | 1080 x 1080 |
 | Carousel | Tall | 1080 x 1440 |
+| Post | Square | 1080 x 1080 |
+| Post | Portrait | 1080 x 1350 |
+| Post | Landscape | 1200 x 675 |
+| Post | Story | 1080 x 1920 |
 
-In **Single image**, the caption below the preview shows the image size. It also shows when the text was reduced to fit.
+In **Single image** and **Post**, the caption below the preview shows the image size. It also shows when the text was reduced to fit.
 
 ## Custom styles
 
@@ -184,6 +231,7 @@ The app is portable. It keeps your custom styles and your last work and settings
 - The app makes no network connections. The window loads its interface from a local server on your own computer (127.0.0.1). A content security policy blocks all other network requests.
 - Images and slide folders are saved only where you select.
 - The app reads a text file only when you select **Open text file**. It does not change the file.
+- The app reads a picture only when you select **Choose picture**. It does not change the file. A small copy of the picture stays with your saved work in the `Quotical Data` folder.
 - Custom styles and your last work and settings stay in the `Quotical Data` folder beside the app. The app keeps your data in no other place.
 - While it runs, the app and its window use temporary working files in your system's temporary folder. They hold none of your saved styles, and they are normally removed when the app closes.
 - The website is separate from the app. Its demo sets your text in your browser and does not send it. The website makes one outside request, to the GitHub API, to find the latest release. GitHub can see your IP address when your browser makes this request. The website has no analytics or tracking.

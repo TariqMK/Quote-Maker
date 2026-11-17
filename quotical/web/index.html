@@ -20,6 +20,7 @@
       <div class="segmented mode-switch" id="modes" role="radiogroup" aria-label="Mode">
         <button type="button" role="radio" data-mode="single">Single image</button>
         <button type="button" role="radio" data-mode="carousel">Carousel</button>
+        <button type="button" role="radio" data-mode="post">Post</button>
       </div>
       <div class="topbar-actions">
         <span class="status" id="status" role="status" aria-live="polite"></span>
@@ -61,6 +62,36 @@
             <span>Keep line breaks <span class="hint">for poems and lists</span></span>
           </label>
         </div>
+        <div class="mode-fields" id="fields-post" hidden>
+          <div class="field">
+            <span class="field-label">Picture</span>
+            <div class="avatar-row">
+              <img class="avatar-preview" id="avatar-preview" alt="" hidden />
+              <span class="avatar-preview avatar-empty" id="avatar-empty" aria-hidden="true"></span>
+              <button class="link" id="choose-avatar" type="button">Choose picture</button>
+              <button class="link" id="remove-avatar" type="button" hidden>Remove</button>
+            </div>
+            <span class="hint">Without a picture, the post shows your initials</span>
+          </div>
+          <label class="field">
+            <span class="field-label">Name</span>
+            <input id="post-name" type="text" placeholder="Your name" />
+          </label>
+          <label class="field">
+            <span class="field-label">Handle</span>
+            <input id="post-handle" type="text" placeholder="Optional, such as @yourname" />
+            <span class="hint">Work post styles show this as your headline</span>
+          </label>
+          <label class="check">
+            <input id="post-verified" type="checkbox" />
+            <span>Verified badge</span>
+          </label>
+          <label class="field">
+            <span class="field-label">Post</span>
+            <textarea id="post-text" rows="8" spellcheck="true" placeholder="Paste your post here"></textarea>
+            <span class="hint">Line breaks stay. *Stars* for italic, **two stars** for bold</span>
+          </label>
+        </div>
         <div class="field">
           <span class="field-label" id="highlight-label">Highlight</span>
           <div class="highlight-row" id="highlights" role="group" aria-labelledby="highlight-label"></div>
@@ -74,6 +105,13 @@
           <label class="field">
             <span class="field-label">Source</span>
             <input id="source" type="text" placeholder="Optional, such as a book title" />
+          </label>
+        </div>
+
+        <div class="mode-fields" id="fields-post-after" hidden>
+          <label class="field">
+            <span class="field-label">Date</span>
+            <input id="post-date" type="text" placeholder="Optional, such as 9:41 AM · Nov 17, 2026" />
           </label>
         </div>
 

@@ -259,17 +259,20 @@ test("layoutAt keeps the given size and stacks lines", () => {
 
 test("saved state from before modes is read as single image work", () => {
   const old = { quote: "Old words", styleId: "x", scale: 2 };
-  assert.deepEqual(readSavedState(old), { mode: "single", single: old, carousel: {} });
+  assert.deepEqual(readSavedState(old), { mode: "single", single: old, carousel: {}, post: {} });
 });
 
 test("saved state with modes keeps each mode's work", () => {
   const single = { quote: "New words" };
   const carousel = { title: "Slides" };
-  assert.deepEqual(readSavedState(buildSavedState("carousel", single, carousel)), { mode: "carousel", single, carousel });
+  const post = { name: "Alex" };
+  assert.deepEqual(readSavedState(buildSavedState("post", single, carousel, post)), { mode: "post", single, carousel, post });
+  // A file from before Post mode has no post work.
+  assert.deepEqual(readSavedState({ mode: "carousel", single, carousel }).post, {});
 });
 
 test("damaged or unknown saved state falls back to defaults", () => {
-  assert.deepEqual(readSavedState(null), { mode: "single", single: {}, carousel: {} });
-  assert.deepEqual(readSavedState([1]), { mode: "single", single: {}, carousel: {} });
+  assert.deepEqual(readSavedState(null), { mode: "single", single: {}, carousel: {}, post: {} });
+  assert.deepEqual(readSavedState([1]), { mode: "single", single: {}, carousel: {}, post: {} });
   assert.equal(readSavedState({ mode: "nope", single: {} }).mode, "single");
 });

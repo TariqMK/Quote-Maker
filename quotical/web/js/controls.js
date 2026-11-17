@@ -213,6 +213,76 @@ export const CAROUSEL_CONTROL_GROUPS = [
   },
 ];
 
+// Fine-tune controls for post styles.
+export const POST_CONTROL_GROUPS = [
+  {
+    title: "Post text",
+    controls: [
+      ...fontControls("body"),
+      { path: "body.color", label: "Colour", type: "color" },
+      { path: "body.size", label: "Largest size", type: "range", min: 20, max: 120, step: 1 },
+      { path: "body.lineHeight", label: "Line height", type: "range", min: 1, max: 2, step: 0.01 },
+      { path: "body.letterSpacing", label: "Letter spacing", type: "range", min: -0.05, max: 0.2, step: 0.005 },
+    ],
+  },
+  {
+    title: "Name and details",
+    open: false,
+    controls: [
+      { heading: "Name" },
+      { path: "profile.font", label: "Font", type: "font" },
+      {
+        path: "profile.weight",
+        label: "Weight",
+        type: "range",
+        step: 10,
+        when: (s) => hasWeights(s.profile.font),
+        range: (s) => [fontInfo(s.profile.font).min, fontInfo(s.profile.font).max],
+      },
+      { path: "profile.color", label: "Colour", type: "color" },
+      { path: "profile.size", label: "Size", type: "range", min: 18, max: 60, step: 1 },
+      { heading: "Details" },
+      { path: "muted", label: "Handle and icons", type: "color" },
+      { path: "badge", label: "Verified badge", type: "color" },
+      { path: "actions", label: "Action icons", type: "toggle", when: (s) => s.kind !== "photo" },
+      { heading: "Picture" },
+      { path: "avatar.shape", label: "Shape", type: "select", options: [["circle", "Circle"], ["rounded", "Rounded square"]] },
+      { path: "avatar.color", label: "Colour without picture", type: "color" },
+    ],
+  },
+  {
+    title: "Card",
+    open: false,
+    controls: [
+      { path: "card.color", label: "Colour", type: "color" },
+      { path: "card.radius", label: "Corner radius", type: "range", min: 0, max: 80, step: 1 },
+      { path: "card.padding", label: "Padding", type: "range", min: 20, max: 120, step: 2 },
+      { path: "card.shadow", label: "Shadow", type: "range", min: 0, max: 0.6, step: 0.01 },
+      { path: "card.borderWidth", label: "Border", type: "range", min: 0, max: 8, step: 0.5 },
+      { path: "card.border", label: "Border colour", type: "color", when: (s) => s.card.borderWidth > 0 },
+      { path: "divider", label: "Divider colour", type: "color", when: (s) => ["short", "work"].includes(s.kind) && s.actions },
+      { heading: "Photo square", when: (s) => s.kind === "photo" },
+      { path: "media.type", label: "Fill", type: "select", options: [["solid", "Solid"], ["linear", "Linear gradient"], ["radial", "Radial gradient"]], when: (s) => s.kind === "photo" },
+      { path: "media.color1", label: "Colour 1", type: "color", when: (s) => s.kind === "photo" },
+      { path: "media.color2", label: "Colour 2", type: "color", when: (s) => s.kind === "photo" && s.media.type !== "solid" },
+      { path: "media.angle", label: "Angle", type: "range", min: 0, max: 360, step: 5, when: (s) => s.kind === "photo" && s.media.type === "linear" },
+    ],
+  },
+  {
+    title: "Background",
+    open: false,
+    controls: [...FILL_CONTROLS, ...TEXTURE_CONTROLS],
+  },
+  {
+    title: "Layout",
+    open: false,
+    controls: [
+      { path: "kind", label: "Post layout", type: "select", options: [["short", "Short post"], ["work", "Work post"], ["thread", "Thread post"], ["photo", "Photo post"]] },
+      { path: "layout.margin", label: "Margin", type: "range", min: 20, max: 300, step: 2 },
+    ],
+  },
+];
+
 export function getPath(object, path) {
   return path.split(".").reduce((value, key) => value?.[key], object);
 }
@@ -272,6 +342,7 @@ function buildColor(value, onChange) {
 // Builds one control. Returns a row element, or null when it does not apply to this style.
 function buildControl(control, style, onChange) {
   if (control.heading) {
+    if (control.when && !control.when(style)) return null;
     const heading = document.createElement("div");
     heading.className = "subhead";
     heading.textContent = control.heading;
@@ -301,8 +372,8 @@ function buildControl(control, style, onChange) {
     output.textContent = formatNumber(value, control.step);
     range.addEventListener("input", () => {
       output.textContent = formatNumber(range.value, control.step);
-      // Shadow visibility depends on the blur value, so these can change which controls show.
-      change(Number(range.value), control.path.startsWith("quote.shadow"));
+      // Shadow and border values can change which controls show.
+      change(Number(range.value), control.path.startsWith("quote.shadow") || control.path === "card.borderWidth");
     });
     wrap.append(range, output);
     row.append(wrap);
@@ -310,7 +381,8 @@ function buildControl(control, style, onChange) {
     const box = document.createElement("input");
     box.type = "checkbox";
     box.checked = !!value;
-    box.addEventListener("change", () => change(box.checked));
+    // A toggle can change which other controls show, such as the divider colour.
+    box.addEventListener("change", () => change(box.checked, true));
     row.append(box);
   } else if (control.type === "select" || control.type === "font") {
     let select;

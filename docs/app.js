@@ -1,7 +1,10 @@
 // Runs the Quotical product page: the working demo, the proof sheet and the download links.
+// The demo has the app's three modes: Single image, Carousel and Post.
 
 import { CAROUSEL_PRESETS, withCarouselDefaults } from "./engine/js/carousel-presets.js";
 import { ensureCarouselFonts, layoutCarousel, renderSlide } from "./engine/js/carousel.js";
+import { ensurePostFonts, renderPost } from "./engine/js/post.js";
+import { POST_CATEGORIES, POST_PRESETS, withPostDefaults } from "./engine/js/post-presets.js";
 import { CATEGORIES, PRESETS, mergeDeep, withDefaults } from "./engine/js/presets.js";
 import { ensureFonts, renderQuote } from "./engine/js/render.js";
 import { HIGHLIGHTS, applyHighlight } from "./engine/js/text.js";
@@ -27,6 +30,7 @@ const CAROUSEL_THUMB = {
   title: "Words worth keeping",
   text: "Clear writing is a set of *small habits* that anyone can learn, one paragraph at a time.",
 };
+const POST_THUMB = { size: 400, name: "Alex Rivera", handle: "@alexwrites", date: "2h", text: "Words *worth* keeping." };
 const FILM_HEIGHT = 112; // Slide thumbnails are drawn at 2x their 56 px display height.
 const WALL = { width: 432, height: 540 };
 const SIZE_PROOF_SCALE = 0.3;
@@ -35,6 +39,7 @@ const HIGHLIGHT_SAMPLE = "Start with the [yellow: best] line";
 const HIGHLIGHT_HINTS = {
   single: "Select words in Quote, then select a colour",
   carousel: "Select words, then select a colour",
+  post: "Select words in Post, then select a colour",
 };
 const EMPHASIS_KINDS = [
   { name: "Italic", overrides: { emphasis: "italic" } },
@@ -79,18 +84,29 @@ const carousel = {
   styleId: "carousel-paper",
   slide: 0,
 };
+// The post sample matches the README screenshot.
+const post = {
+  name: "Mara Ellison",
+  handle: "@maraellison",
+  date: "8:15 AM · Nov 17, 2026",
+  text: "Keep the first draft.\n\nIt remembers what you *meant* before you knew how to say it. The [yellow: second draft] only makes it clearer.",
+  sizeId: "square",
+  styleId: "post-short-dim",
+  filter: "All",
+};
 let carouselLayout = null;
 const measureContext = document.createElement("canvas").getContext("2d");
-const lastField = { single: "quote", carousel: "article" };
+const lastField = { single: "quote", carousel: "article", post: "post-text" };
 
 const words = () => ({ quote: state.quote, author: state.author, source: state.source });
 const currentStyle = () => presetById(state.styleId);
 const carouselStyle = () => withCarouselDefaults(CAROUSEL_PRESETS.find((p) => p.id === carousel.styleId));
+const postStyle = () => withPostDefaults(POST_PRESETS.find((p) => p.id === post.styleId));
 const isCarousel = () => state.mode === "carousel";
-const currentSize = () =>
-  isCarousel()
-    ? CAROUSEL_SIZES.find((s) => s.id === carousel.sizeId)
-    : SIZES.find((s) => s.id === state.sizeId);
+const isPost = () => state.mode === "post";
+// The work of the open mode: its size, style and filter.
+const modeWork = () => ({ single: state, carousel, post })[state.mode];
+const currentSize = () => (isCarousel() ? CAROUSEL_SIZES : SIZES).find((s) => s.id === modeWork().sizeId);
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -184,6 +200,25 @@ function requestPreview() {
       drawCarousel(style);
       return;
     }
+    if (isPost()) {
+      const style = postStyle();
+      await ensurePostFonts(style);
+      if (token !== previewToken) return;
+      const { width, height } = currentSize();
+      const canvas = $("preview");
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+      }
+      fitPreview();
+      // The demo has no picture, so the post shows the initials. The app can add a picture.
+      const result = renderPost(canvas.getContext("2d"), { width, height, ...post, verified: true, style });
+      const note = `${width} × ${height} px`;
+      $("proof-note").textContent = result.fittedDown
+        ? `${note}  ·  text reduced to size ${Math.round(result.fontSize)} to fit`
+        : note;
+      return;
+    }
     const style = currentStyle();
     await ensureFonts(style);
     if (token !== previewToken) return;
@@ -270,6 +305,7 @@ function setMode(mode) {
   });
   $("slide-bar").hidden = mode !== "carousel";
   $("filters").hidden = mode === "carousel";
+  renderFilters();
   $("highlight-hint").textContent = HIGHLIGHT_HINTS[mode];
   renderSizes();
   renderGallery();
@@ -325,7 +361,7 @@ function renderHighlights() {
 }
 
 function renderSizes() {
-  const target = isCarousel() ? carousel : state;
+  const target = modeWork();
   $("sizes").replaceChildren(
     ...(isCarousel() ? CAROUSEL_SIZES : SIZES).map((size) => {
       const button = el("button", "size-option");
@@ -344,13 +380,14 @@ function renderSizes() {
 }
 
 function renderFilters() {
+  const target = isPost() ? post : state;
   $("filters").replaceChildren(
-    ...["All", ...CATEGORIES].map((name) => {
+    ...["All", ...(isPost() ? POST_CATEGORIES : CATEGORIES)].map((name) => {
       const button = el("button", "filter", name);
       button.type = "button";
-      button.setAttribute("aria-pressed", String(name === state.filter));
+      button.setAttribute("aria-pressed", String(name === target.filter));
       button.addEventListener("click", () => {
-        state.filter = name;
+        target.filter = name;
         renderFilters();
         renderGallery();
       });
@@ -398,9 +435,53 @@ function renderCarouselGallery() {
   pump();
 }
 
+function renderPostGallery() {
+  $("gallery").classList.remove("portrait");
+  const shown = post.filter === "All" ? POST_PRESETS : POST_PRESETS.filter((p) => p.category === post.filter);
+  $("gallery").replaceChildren(
+    ...shown.map((preset) => {
+      const button = el("button", "swatch");
+      button.type = "button";
+      button.dataset.styleId = preset.id;
+      button.setAttribute("aria-pressed", String(preset.id === post.styleId));
+      const canvas = el("canvas");
+      canvas.setAttribute("aria-hidden", "true");
+      button.append(canvas, el("span", "", preset.name));
+      button.addEventListener("click", () => {
+        post.styleId = preset.id;
+        markSelected();
+        requestPreview();
+      });
+      // Thumbnails are small, so the margin shrinks and the type is enlarged, the same as in the app.
+      const style = mergeDeep(withPostDefaults(preset), {
+        layout: { margin: preset.layout.margin * 0.5 },
+        profile: { size: preset.profile.size * 1.5 },
+        body: { size: preset.body.size * 1.7 },
+      });
+      register(canvas, async (target) => {
+        await ensurePostFonts(style);
+        target.width = target.height = POST_THUMB.size;
+        renderPost(target.getContext("2d"), {
+          ...POST_THUMB,
+          width: POST_THUMB.size,
+          height: POST_THUMB.size,
+          verified: true,
+          style,
+        });
+      });
+      return button;
+    }),
+  );
+  pump();
+}
+
 function renderGallery() {
   if (isCarousel()) {
     renderCarouselGallery();
+    return;
+  }
+  if (isPost()) {
+    renderPostGallery();
     return;
   }
   $("gallery").classList.remove("portrait");
@@ -430,11 +511,11 @@ function renderGallery() {
 }
 
 function markSelected() {
-  const selected = isCarousel() ? carousel.styleId : state.styleId;
+  const selected = modeWork().styleId;
   document.querySelectorAll("[data-style-id]").forEach((button) => {
     button.setAttribute("aria-pressed", String(button.dataset.styleId === selected));
   });
-  const presets = isCarousel() ? CAROUSEL_PRESETS : PRESETS;
+  const presets = { single: PRESETS, carousel: CAROUSEL_PRESETS, post: POST_PRESETS }[state.mode];
   $("style-name").textContent = presets.find((p) => p.id === selected).name;
 }
 
@@ -537,6 +618,14 @@ function bindCarousel() {
     button.setAttribute("aria-checked", String(button.dataset.mode === state.mode));
     button.addEventListener("click", () => setMode(button.dataset.mode));
   });
+  for (const [id, key] of [["post-name", "name"], ["post-handle", "handle"], ["post-text", "text"]]) {
+    const field = $(id);
+    field.value = post[key];
+    field.addEventListener("input", () => {
+      post[key] = field.value;
+      requestPreview();
+    });
+  }
   $("prev-slide").addEventListener("click", () => goToSlide(carousel.slide - 1));
   $("next-slide").addEventListener("click", () => goToSlide(carousel.slide + 1));
 }

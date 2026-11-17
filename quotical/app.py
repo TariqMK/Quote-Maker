@@ -23,6 +23,15 @@ IMAGE_TYPES = {
 }
 # Larger text files are refused, because an article is never this long.
 MAX_TEXT_FILE_BYTES = 2_000_000
+# Larger pictures are refused. The window shrinks a post picture to 256 x 256 px.
+MAX_PICTURE_BYTES = 20_000_000
+# Picture types a post can use: media type and a test on the first bytes of the file.
+PICTURE_TYPES = {
+    "image/png": lambda head: head.startswith(PNG_SIGNATURE),
+    "image/jpeg": lambda head: head.startswith(JPEG_SIGNATURE),
+    "image/gif": lambda head: head[:6] in (b"GIF87a", b"GIF89a"),
+    "image/webp": lambda head: head[:4] == b"RIFF" and head[8:12] == b"WEBP",
+}
 
 
 def decode_image(data_url: str) -> tuple[bytes, str]:
@@ -65,6 +74,18 @@ def read_text_file(path: Path) -> dict:
     return {"name": path.stem, "text": text}
 
 
+def read_picture_file(path: Path) -> dict:
+    """Read a picture for a post as a data URL. The file itself is never changed."""
+    if path.stat().st_size > MAX_PICTURE_BYTES:
+        raise ValueError("The picture is larger than 20 MB.")
+    data = path.read_bytes()
+    for mime, matches in PICTURE_TYPES.items():
+        if matches(data[:16]):
+            encoded = base64.b64encode(data).decode("ascii")
+            return {"name": path.stem, "dataUrl": f"data:{mime};base64,{encoded}"}
+    raise ValueError("The file is not a PNG, JPEG, GIF or WebP picture.")
+
+
 class Api:
     """Methods the web interface calls through window.pywebview.api."""
 
@@ -99,6 +120,16 @@ class Api:
         if not chosen:
             return None
         return read_text_file(Path(chosen if isinstance(chosen, str) else chosen[0]))
+
+    def open_image_file(self):
+        """Ask the user for a picture and return {name, dataUrl}, or None if cancelled."""
+        chosen = self._window.create_file_dialog(
+            webview.FileDialog.OPEN,
+            file_types=("Pictures (*.png;*.jpg;*.jpeg;*.gif;*.webp)", "All files (*.*)"),
+        )
+        if not chosen:
+            return None
+        return read_picture_file(Path(chosen if isinstance(chosen, str) else chosen[0]))
 
     def load_state(self):
         return self._storage.load_state()

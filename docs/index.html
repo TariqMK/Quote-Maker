@@ -11,7 +11,7 @@
     <title>Quotical: any words, many styles</title>
     <meta
       name="description"
-      content="A free desktop app that turns pasted text into a quote image, or an article into a carousel of slides. 25+ quote styles, 6 carousel styles, 24 bundled fonts. Works offline and sends no data."
+      content="A free desktop app that turns pasted text into a quote image, a social media post image, or an article into a carousel of slides. 25+ quote styles, 6 carousel styles, 10 post styles, 24 bundled fonts. Works offline and sends no data."
     />
     <meta name="theme-color" content="#0e0e0f" />
     <meta name="color-scheme" content="dark" />
@@ -19,14 +19,14 @@
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Quotical" />
-    <meta property="og:description" content="Any words. Many styles. Quote images and carousels from a free desktop app that works offline and sends no data." />
+    <meta property="og:description" content="Any words. Many styles. Quote images, post images and carousels from a free desktop app that works offline and sends no data." />
     <meta property="og:url" content="https://tariqmk.github.io/Quotical/" />
     <meta property="og:image" content="https://tariqmk.github.io/Quotical/social-card.png" />
     <meta property="og:image:width" content="1280" />
     <meta property="og:image:height" content="640" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Quotical" />
-    <meta name="twitter:description" content="Any words. Many styles. Quote images and carousels from a free desktop app that works offline and sends no data." />
+    <meta name="twitter:description" content="Any words. Many styles. Quote images, post images and carousels from a free desktop app that works offline and sends no data." />
     <meta name="twitter:image" content="https://tariqmk.github.io/Quotical/social-card.png" />
     <link rel="stylesheet" href="engine/fonts.css" />
     <link rel="stylesheet" href="style.css" />
@@ -55,8 +55,8 @@
           </h1>
           <div class="hero-row">
             <p class="lede">
-              Quotical is a desktop app that sets pasted text as a finished quote image, or an article as a
-              carousel of slides. Select a style, adjust it, and save PNG or JPG files.
+              Quotical is a desktop app that sets pasted text as a finished quote image or a social media post,
+              or an article as a carousel of slides. Select a style, adjust it, and save PNG or JPG files.
             </p>
             <div class="hero-actions">
               <div class="actions">
@@ -77,8 +77,8 @@
           </div>
 
           <p class="demo-label" id="demo">
-            This window works. Type in it, select a style, or switch to Carousel. Your text stays in this
-            browser tab.
+            This window works. Type in it, select a style, or switch to Carousel or Post. Your text stays in
+            this browser tab.
           </p>
           <noscript><p class="demo-label">The working demo needs JavaScript.</p></noscript>
 
@@ -94,6 +94,7 @@
                 <div class="segmented mode-switch" id="modes" role="radiogroup" aria-label="Mode">
                   <button type="button" role="radio" data-mode="single">Single image</button>
                   <button type="button" role="radio" data-mode="carousel">Carousel</button>
+                  <button type="button" role="radio" data-mode="post">Post</button>
                 </div>
                 <a class="button primary" href="#download">Download to save images</a>
               </div>
@@ -135,6 +136,19 @@
                     <span class="field-label">Article</span>
                     <textarea id="article" rows="8" spellcheck="false"></textarea>
                     <span class="hint">*Stars* for italic, **two stars** for bold. Type [slide] on a line of its own to start a new slide.</span>
+                  </label>
+                  <label class="field" data-mode-field="post" hidden>
+                    <span class="field-label">Name</span>
+                    <input id="post-name" type="text" placeholder="Your name" />
+                  </label>
+                  <label class="field field-source" data-mode-field="post" hidden>
+                    <span class="field-label">Handle</span>
+                    <input id="post-handle" type="text" placeholder="Optional, such as @yourname" />
+                  </label>
+                  <label class="field" data-mode-field="post" hidden>
+                    <span class="field-label">Post</span>
+                    <textarea id="post-text" rows="5" spellcheck="false"></textarea>
+                    <span class="hint">Line breaks stay. The app also adds your picture, a verified badge and the date.</span>
                   </label>
                   <div class="field">
                     <span class="field-label" id="highlight-label">Highlight</span>
@@ -232,6 +246,18 @@
               <p>Paste an article, and it splits into slides. The title goes on slide 1. Page numbers are added.</p>
             </div>
             <div>
+              <h3>Post mode</h3>
+              <p>Set your words as a post, with your picture or initials, name, handle, a verified badge and the date.</p>
+            </div>
+            <div>
+              <h3>Four post layouts</h3>
+              <p>Short post, Work post, Thread post and Photo post, in 10 light and dark styles. No platform logos.</p>
+            </div>
+            <div>
+              <h3>Your picture stays yours</h3>
+              <p>The app reads the picture you choose and never changes the file. A small copy stays beside the app.</p>
+            </div>
+            <div>
               <h3>Slide breaks where you want</h3>
               <p>Paragraphs stay whole when they fit. Add a slide break to start a new slide at any point.</p>
             </div>
@@ -253,11 +279,11 @@
             </div>
             <div>
               <h3>Image sizes and scales</h3>
-              <p>Quotes: Square, Portrait, Landscape, Story or Custom. Carousels: Portrait, Square or Tall. Saved at 1x, 2x or 3x.</p>
+              <p>Quotes and posts: Square, Portrait, Landscape or Story, and Custom for quotes. Carousels: Portrait, Square or Tall. Saved at 1x, 2x or 3x.</p>
             </div>
             <div>
               <h3>Text that fits</h3>
-              <p>Quote text shrinks to fit the image. Carousel text keeps its size and moves on to the next slide.</p>
+              <p>Quote and post text shrinks to fit the image. Carousel text keeps its size and moves on to the next slide.</p>
             </div>
             <div>
               <h3>Typographic characters</h3>
