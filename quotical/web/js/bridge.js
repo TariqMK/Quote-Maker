@@ -51,6 +51,13 @@ export async function openReleasePage() {
   return null;
 }
 
+// Opens the GitHub bug form in the user's browser. Python fills in the version and system.
+export async function reportProblem() {
+  if (desktop) return desktop.report_problem();
+  window.open("https://github.com/TariqMK/Quotical/issues/new?template=bug.yml", "_blank", "noopener");
+  return null;
+}
+
 export async function listStyles(kind = "single") {
   return desktop ? desktop.list_styles(kind) : readLocal(STYLES_KEYS[kind], []);
 }

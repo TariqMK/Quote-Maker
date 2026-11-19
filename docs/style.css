@@ -937,6 +937,10 @@ input::placeholder {
   font-size: 14px;
 }
 
+.fine-print + .fine-print {
+  margin-top: 8px;
+}
+
 /* Footer */
 .footer {
   padding-block: 32px;

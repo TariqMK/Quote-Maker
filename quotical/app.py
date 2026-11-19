@@ -10,6 +10,7 @@ from pathlib import Path
 import webview
 
 from quotical._version import __version__
+from quotical.feedback import report_url, system_name
 from quotical.storage import Storage, new_folder, safe_filename, safe_folder_name
 from quotical.update_check import RELEASES_URL, UpdateCheckError, check_for_updates
 
@@ -121,6 +122,13 @@ class Api:
     def open_release_page(self):
         """Open the release page from the last check in the browser. The user downloads it there."""
         webbrowser.open(self._release_url)
+
+    def report_problem(self):
+        """Open the GitHub bug form in the browser, with the version and system filled in.
+
+        Nothing is sent from the app. The user reads the form and submits it on GitHub.
+        """
+        webbrowser.open(report_url(__version__, system_name()))
 
     def list_styles(self, kind="single"):
         return self._storage.list_styles(kind)

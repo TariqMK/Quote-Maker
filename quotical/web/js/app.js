@@ -972,6 +972,10 @@ function placeVersion() {
   const button = $("version");
   button.style.left = `${Math.round(mark.right + 6)}px`;
   button.style.top = `${Math.round(mark.top + (mark.height - button.offsetHeight) / 2 + 2)}px`;
+  // Report a Problem sits right after the version, on the same line.
+  const report = $("report-problem");
+  report.style.left = `${Math.round(button.getBoundingClientRect().right + 2)}px`;
+  report.style.top = button.style.top;
 }
 
 function setVersionLabel(version) {
@@ -1091,6 +1095,7 @@ function bindEvents() {
   });
   $("choose-avatar").addEventListener("click", chooseAvatar);
   $("version").addEventListener("click", checkForUpdates);
+  $("report-problem").addEventListener("click", () => bridge.reportProblem());
   $("update-form").addEventListener("submit", (event) => {
     if (event.submitter?.value === "open") bridge.openReleasePage();
   });
