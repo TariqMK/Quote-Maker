@@ -43,6 +43,13 @@ export const FONTS = [
     "italic": true
   },
   {
+    "family": "Source Serif 4",
+    "group": "Serif",
+    "min": 200,
+    "max": 900,
+    "italic": true
+  },
+  {
     "family": "Instrument Serif",
     "group": "Serif",
     "min": 400,

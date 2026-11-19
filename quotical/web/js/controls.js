@@ -169,6 +169,7 @@ export const CAROUSEL_CONTROL_GROUPS = [
       ...fontControls("subtitle"),
       { path: "subtitle.color", label: "Colour", type: "color" },
       { path: "subtitle.size", label: "Size", type: "range", min: 12, max: 64, step: 1 },
+      { path: "subtitle.lineHeight", label: "Line height", type: "range", min: 1, max: 2.4, step: 0.01 },
       { path: "subtitle.letterSpacing", label: "Letter spacing", type: "range", min: 0, max: 0.4, step: 0.01 },
       { path: "subtitle.uppercase", label: "Capitals", type: "toggle" },
       { path: "subtitle.gap", label: "Gap above", type: "range", min: 0, max: 80, step: 1 },
